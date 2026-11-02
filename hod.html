@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>HoD Console &middot; Evaluation Portal</title>
+<style>
+:root{--font:"Segoe UI",system-ui,-apple-system,"Inter",Roboto,Arial,sans-serif;
+  --r-sm:8px;--r:12px;--r-lg:18px;--t:.24s cubic-bezier(.4,0,.2,1);--nav:240px;--top:62px}
+html[data-theme="dark"]{--bg:#070b16;--bg2:#0b1120;--card:#111a2e;--card2:#0e1627;--hov:#16203a;
+  --line:rgba(130,160,220,.16);--line2:rgba(130,160,220,.28);--txt:#e8eefc;--dim:#93a3c4;--faint:#5f6f91;
+  --a1:#5b8cff;--a2:#9b6bff;--a3:#22d3ee;--ok:#34d399;--warn:#fbbf24;--err:#f87171;
+  --sh:0 14px 44px -16px rgba(0,0,0,.8);--inp:#0a1120}
+html[data-theme="light"]{--bg:#eff3fa;--bg2:#fff;--card:#fff;--card2:#f7f9fd;--hov:#eef3fc;
+  --line:rgba(30,58,110,.13);--line2:rgba(30,58,110,.26);--txt:#0e1a33;--dim:#4a5d7e;--faint:#8294b3;
+  --a1:#2f5fe0;--a2:#7c3aed;--a3:#0891b2;--ok:#059669;--warn:#d97706;--err:#dc2626;
+  --sh:0 12px 34px -16px rgba(20,40,90,.4);--inp:#fff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--txt);min-height:100dvh;font-size:14px;
+  transition:background var(--t),color var(--t);-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+
+.top{position:fixed;top:0;left:0;right:0;height:var(--top);z-index:40;display:flex;align-items:center;gap:14px;
+  padding:0 16px;background:color-mix(in srgb,var(--bg2) 86%,transparent);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:11px;font-weight:700;white-space:nowrap}
+.logo i{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--a1),var(--a2));
+  display:grid;place-items:center;color:#fff;font-style:normal;font-size:12px;font-weight:800}
+.logo small{display:block;font-size:10.5px;color:var(--faint);font-weight:500}
+.top .sp{flex:1}
+.ibtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);
+  cursor:pointer;display:grid;place-items:center;font-size:16px;transition:all var(--t)}
+.ibtn:hover{border-color:var(--a1);color:var(--a1)}
+.who{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 6px;border:1px solid var(--line);border-radius:99px;background:var(--card)}
+.av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--a1),var(--a2));
+  display:grid;place-items:center;color:#fff;font-size:11.5px;font-weight:700}
+.who b{font-size:12.5px;display:block;line-height:1.25}.who span{font-size:10.5px;color:var(--faint)}
+@media(max-width:700px){.who b,.who span{display:none}.who{padding:5px}.logo small{display:none}}
+#burger{display:none}@media(max-width:980px){#burger{display:grid}}
+
+.nav{position:fixed;top:var(--top);bottom:0;left:0;width:var(--nav);background:var(--bg2);border-right:1px solid var(--line);
+  padding:16px 12px;overflow-y:auto;z-index:35;transition:transform var(--t)}
+.nav h6{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);margin:18px 10px 8px;font-weight:700}
+.nav h6:first-child{margin-top:4px}
+.nv{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r);cursor:pointer;color:var(--dim);
+  font-size:13.5px;font-weight:500;transition:all var(--t);margin-bottom:3px;border:1px solid transparent}
+.nv:hover{background:var(--hov);color:var(--txt)}
+.nv.on{background:linear-gradient(135deg,rgba(91,140,255,.16),rgba(155,107,255,.09));color:var(--txt);
+  border-color:rgba(91,140,255,.3);font-weight:600}
+.nv .e{font-size:15px;width:19px;text-align:center}
+.nv .cnt{margin-left:auto;font-size:10.5px;background:var(--hov);padding:2px 7px;border-radius:99px;color:var(--faint)}
+.nv.on .cnt{background:rgba(91,140,255,.2);color:var(--a1)}
+@media(max-width:980px){.nav{transform:translateX(-100%);box-shadow:var(--sh)}.nav.open{transform:none}}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:34;display:none}.scrim.on{display:block}
+
+main{margin-left:var(--nav);padding:calc(var(--top) + 20px) 22px 60px;max-width:1500px}
+@media(max-width:980px){main{margin-left:0;padding:calc(var(--top) + 16px) 14px 70px}}
+.view{display:none;animation:fade .3s}.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.head h2{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.head p{color:var(--dim);font-size:13px;margin-top:4px;max-width:78ch}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;box-shadow:var(--sh);margin-bottom:16px}
+.card>h3{font-size:14.5px;font-weight:650;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card>.cd{font-size:12.5px;color:var(--dim);margin-bottom:14px;line-height:1.55}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;position:relative;overflow:hidden;transition:all var(--t)}
+.stat:hover{transform:translateY(-3px);border-color:var(--line2)}
+.stat::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--a1),var(--a2))}
+.stat .k{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;font-weight:650}
+.stat .v{font-size:27px;font-weight:750;margin:7px 0 2px;letter-spacing:-.8px}
+.stat .s{font-size:11.5px;color:var(--dim)}
+.bar{height:6px;border-radius:99px;background:var(--hov);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--a1),var(--a3));transition:width .8s cubic-bezier(.2,.8,.2,1)}
+
+label.lb{display:block;font-size:11px;font-weight:650;color:var(--dim);margin-bottom:5px;letter-spacing:.4px;text-transform:uppercase}
+.inp,select.inp{width:100%;padding:9px 11px;font:inherit;font-size:13.5px;color:var(--txt);background:var(--inp);
+  border:1.5px solid var(--line);border-radius:var(--r-sm);outline:none;transition:all var(--t)}
+.inp:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(91,140,255,.14)}
+select.inp{cursor:pointer}
+.fr{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}.fr>div{flex:1 1 150px;min-width:0}
+.btn{padding:9px 15px;border:0;border-radius:var(--r-sm);font:inherit;font-size:13px;font-weight:620;color:#fff;
+  background:linear-gradient(135deg,var(--a1),var(--a2));cursor:pointer;transition:all var(--t);
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;box-shadow:0 7px 18px -8px var(--a1)}
+.btn:hover:not(:disabled){transform:translateY(-1.5px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+.btn.sm{padding:6px 11px;font-size:12px}
+.btn.g{background:transparent;color:var(--dim);border:1.5px solid var(--line);box-shadow:none}
+.btn.g:hover:not(:disabled){border-color:var(--a1);color:var(--a1);transform:none}
+.btn.ok{background:linear-gradient(135deg,var(--ok),#0ea371)}
+.btn.dg{background:linear-gradient(135deg,var(--err),#b91c1c)}
+.btns{display:flex;gap:9px;flex-wrap:wrap}
+
+.tw{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card2);max-height:66vh}
+table.t{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:600px}
+table.t th{position:sticky;top:0;z-index:2;background:var(--card);padding:9px 10px;text-align:left;font-weight:650;
+  font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);border-bottom:1.5px solid var(--line);white-space:nowrap}
+table.t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.t tbody tr:hover{background:var(--hov)}
+table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
+table.t td.c,table.t th.c{text-align:center}
+table.t tr.un td{background:rgba(251,191,36,.07)}
+.pill{display:inline-block;padding:2.5px 9px;border-radius:99px;font-size:10.5px;font-weight:650;white-space:nowrap}
+.pill.ok{background:rgba(52,211,153,.15);color:var(--ok)}
+.pill.err{background:rgba(248,113,113,.15);color:var(--err)}
+.pill.warn{background:rgba(251,191,36,.15);color:var(--warn)}
+.pill.dim{background:var(--hov);color:var(--faint)}
+.pill.inf{background:rgba(91,140,255,.15);color:var(--a1)}
+.empty{padding:38px 20px;text-align:center;color:var(--faint);font-size:13px}
+.empty .e{font-size:30px;display:block;margin-bottom:10px;opacity:.5}
+.note{padding:11px 13px;border-radius:var(--r);font-size:12.5px;line-height:1.6;border:1px solid transparent;margin-bottom:12px}
+.note.i{background:rgba(91,140,255,.09);border-color:rgba(91,140,255,.24);color:var(--a1)}
+.note.w{background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.26);color:var(--warn)}
+.note.s{background:rgba(52,211,153,.09);border-color:rgba(52,211,153,.26);color:var(--ok)}
+.note.e{background:rgba(248,113,113,.09);border-color:rgba(248,113,113,.26);color:var(--err)}
+
+#toasts{position:fixed;right:16px;bottom:16px;z-index:90;display:flex;flex-direction:column;gap:9px;max-width:370px}
+.toast{background:var(--card);border:1px solid var(--line);border-left:3.5px solid var(--a1);border-radius:var(--r);
+  padding:11px 14px;box-shadow:var(--sh);font-size:13px;animation:slip .3s;line-height:1.5}
+.toast.ok{border-left-color:var(--ok)}.toast.err{border-left-color:var(--err)}.toast.warn{border-left-color:var(--warn)}
+@keyframes slip{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@media(max-width:600px){#toasts{left:12px;right:12px;max-width:none}}
+.ov{position:fixed;inset:0;background:rgba(2,6,16,.7);backdrop-filter:blur(6px);z-index:80;display:none;place-items:center;padding:18px}
+.ov.on{display:grid;animation:fade .2s}
+.mod{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;width:100%;
+  max-width:620px;max-height:88dvh;overflow:auto;box-shadow:var(--sh)}
+.mod h3{font-size:17px;margin-bottom:5px}.mod .cd{font-size:12.5px;color:var(--dim);margin-bottom:16px;line-height:1.55}
+.mrow{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.spin2{width:15px;height:15px;border:2.2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
+  animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* examiner contact cards */
+.exc{background:var(--card2);border:1px solid var(--line);border-radius:var(--r);padding:14px;transition:all var(--t)}
+.exc:hover{border-color:var(--a1);transform:translateY(-2px)}
+.exc .nm{font-weight:650;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.exc .meta{font-size:12px;color:var(--dim);margin:6px 0 10px;line-height:1.6}
+.exc .acts{display:flex;gap:7px;flex-wrap:wrap}
+.acts a{padding:6px 11px;border-radius:var(--r-sm);font-size:12px;font-weight:620;text-decoration:none;
+  border:1.4px solid var(--line);color:var(--dim);display:inline-flex;align-items:center;gap:6px;transition:all var(--t)}
+.acts a.call{background:linear-gradient(135deg,var(--ok),#0ea371);color:#fff;border-color:transparent}
+.acts a:hover{transform:translateY(-1.5px);border-color:var(--a1);color:var(--a1)}
+.acts a.call:hover{color:#fff}
+.srch{position:relative}.srch input{padding-left:31px}
+.srch::before{content:"\1F50D";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.5}
+.selwrap{display:flex;gap:8px;align-items:center}
+.selwrap select{flex:1}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <button class="ibtn" id="burger">&#9776;</button>
+  <div class="logo"><i>HoD</i><div>Evaluation Portal<small id="boardTag">Board chairman console</small></div></div>
+  <div class="sp"></div>
+  <button class="ibtn" id="themeBtn" title="Theme">&#9790;</button>
+  <div class="who"><div class="av" id="av">--</div><div><b id="uname">&mdash;</b><span id="urole">&mdash;</span></div></div>
+  <button class="ibtn" id="logout" title="Sign out">&#9211;</button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<nav class="nav" id="nav">
+  <h6>Overview</h6>
+  <div class="nv on" data-v="dash"><span class="e">&#128202;</span>Dashboard</div>
+  <h6>Valuation</h6>
+  <div class="nv" data-v="courses"><span class="e">&#128218;</span>Course summary<span class="cnt" id="cCourse">0</span></div>
+  <div class="nv" data-v="allot"><span class="e">&#128203;</span>Bundle allotment<span class="cnt" id="cBundle">0</span></div>
+  <div class="nv" data-v="plan"><span class="e">&#128197;</span>Session planner</div>
+  <h6>Examiners</h6>
+  <div class="nv" data-v="ext"><span class="e">&#128222;</span>External examiners<span class="cnt" id="cExt">0</span></div>
+  <div class="nv" data-v="int"><span class="e">&#128101;</span>Internal faculty<span class="cnt" id="cInt">0</span></div>
+</nav>
+
+<main>
+
+<!-- ============ DASHBOARD ============ -->
+<section class="view on" id="v-dash">
+  <div class="head"><div><h2>Dashboard</h2><p id="dashSub">Allotment position for your board.</p></div>
+    <button class="btn g sm" id="refresh">&#8635; Refresh</button></div>
+  <div class="grid g4" id="stats"></div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3>&#9201; Allotment progress</h3>
+      <div class="cd">Bundles that already carry an examiner against the total generated for your board.</div>
+      <div id="progBox"></div></div>
+    <div class="card"><h3>&#9889; Quick actions</h3>
+      <div class="cd">Go straight to what you need.</div>
+      <div class="btns">
+        <button class="btn g sm" data-go="allot">&#128203; Allot bundles</button>
+        <button class="btn g sm" data-go="courses">&#128218; Course totals</button>
+        <button class="btn g sm" data-go="ext">&#128222; Call an examiner</button>
+        <button class="btn g sm" data-go="plan">&#128197; Plan sessions</button>
+      </div>
+      <div id="unBox" style="margin-top:16px"></div></div>
+  </div>
+</section>
+
+<!-- ============ COURSE SUMMARY ============ -->
+<section class="view" id="v-courses">
+  <div class="head"><div><h2>Course summary</h2>
+    <p>Course code, name, bundles and the total number of answer scripts in each course for your board.</p></div>
+    <button class="btn g sm" id="csExport">&#128229; Export CSV</button></div>
+  <div class="card">
+    <div class="fr" style="margin-bottom:12px">
+      <div class="srch"><input class="inp" id="csSearch" placeholder="Search course code or name"></div>
+    </div>
+    <div class="tw"><table class="t" id="csTable"></table></div>
+  </div>
+</section>
+
+<!-- ============ BUNDLE ALLOTMENT ============ -->
+<section class="view" id="v-allot">
+  <div class="head"><div><h2>Bundle allotment</h2>
+    <p>Pick Internal or External for each bundle. For an internal valuator choose the department first, then the faculty.
+       The faculty ID is written straight back into the Data sheet.</p></div></div>
+
+  <div class="card">
+    <div class="fr">
+      <div><label class="lb">Course</label><select class="inp" id="alCourse"><option value="">All courses</option></select></div>
+      <div><label class="lb">Status</label><select class="inp" id="alStatus">
+        <option value="">All bundles</option><option value="un">Unallotted only</option><option value="as">Allotted only</option></select></div>
+      <div class="srch" style="flex:2 1 200px"><label class="lb">Search</label><input class="inp" id="alSearch" placeholder="Course, bundle, faculty"></div>
+      <div style="flex:0 0 auto"><label class="lb">&nbsp;</label>
+        <div class="btns">
+          <button class="btn" id="alSave" disabled>&#128190; Save changes <span id="alDirty"></span></button>
+          <button class="btn g sm" id="alBulk">&#9889; Bulk assign</button>
+        </div></div>
+    </div>
+    <div id="alMsg" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h3>&#128230; Bundles <span class="pill dim" id="alCount">0</span></h3>
+    <div class="tw"><table class="t" id="alTable"></table></div>
+  </div>
+</section>
+
+<!-- ============ SESSION PLANNER ============ -->
+<section class="view" id="v-plan">
+  <div class="head"><div><h2>Session planner</h2>
+    <p>Assign each bundle to a valuation day and session. This feeds the session-wise summary on the
+       Chairman work-out chart and the allotment chart.</p></div></div>
+  <div class="card">
+    <div class="fr">
+      <div><label class="lb">Apply to</label><select class="inp" id="plScope">
+        <option value="sel">Selected bundles</option><option value="un">All unplanned bundles</option></select></div>
+      <div><label class="lb">Day</label><select class="inp" id="plDay"><option>Day 1</option><option>Day 2</option><option>Day 3</option><option>Day 4</option></select></div>
+      <div><label class="lb">Session</label><select class="inp" id="plSes"><option>FN</option><option>AN</option></select></div>
+      <div style="flex:0 0 auto"><label class="lb">&nbsp;</label><button class="btn" id="plApply">&#9989; Apply</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>&#128197; Planning grid</h3>
+    <div class="tw"><table class="t" id="plTable"></table></div>
+  </div>
+</section>
+
+<!-- ============ EXTERNAL ============ -->
+<section class="view" id="v-ext">
+  <div class="head"><div><h2>External examiners</h2>
+    <p>Examiners appointed for your board, with one-tap calling, WhatsApp and e-mail.</p></div></div>
+  <div class="card">
+    <div class="fr" style="margin-bottom:12px">
+      <div class="srch"><input class="inp" id="exSearch" placeholder="Search name, college, city"></div>
+      <div style="flex:0 1 180px"><select class="inp" id="exOnly">
+        <option value="">All on the board</option><option value="as">Allotted to my bundles</option></select></div>
+    </div>
+    <div class="grid g2" id="exCards"></div>
+  </div>
+</section>
+
+<!-- ============ INTERNAL ============ -->
+<section class="view" id="v-int">
+  <div class="head"><div><h2>Internal faculty</h2>
+    <p>Department-wise internal valuator directory with their current load for your board.</p></div></div>
+  <div class="card">
+    <div class="fr" style="margin-bottom:12px">
+      <div class="srch"><input class="inp" id="inSearch" placeholder="Search name or designation"></div>
+      <div style="flex:0 1 190px"><select class="inp" id="inDept"><option value="">All departments</option></select></div>
+    </div>
+    <div class="tw"><table class="t" id="inTable"></table></div>
+  </div>
+</section>
+
+</main>
+
+<div id="toasts"></div>
+<div class="ov" id="ov"><div class="mod"><h3 id="mTitle"></h3><div class="cd" id="mDesc"></div>
+  <div id="mBody"></div><div class="mrow" id="mBtns"></div></div></div>
+
+<script>
+/* ===================================================================================
+ *  BACKEND URL — paste your Apps Script /exec link here (or configure it on index.html)
+ * =================================================================================== */
+var API_URL = "https://script.google.com/macros/s/AKfycbwoAMI1ZLthpnP2la4AWLgP5jGdyFBjneFfVUsnFaaTqHnU9enUHZiESdGWzBoNqBm60w/exec";
+
+var LS={url:'ep_api_url',theme:'ep_theme',tok:'ep_token',user:'ep_user'};
+function apiUrl(){ return (localStorage.getItem(LS.url)||API_URL||'').trim(); }
+var TOKEN=sessionStorage.getItem(LS.tok)||localStorage.getItem(LS.tok)||'';
+var USER=JSON.parse(sessionStorage.getItem(LS.user)||localStorage.getItem(LS.user)||'null');
+var BOARD='', DATA=[], EXT=[], INT=[], COURSES=[], DIRTY={};
+
+function api(p){
+  p=p||{}; if(!p.token) p.token=TOKEN;
+  var url=apiUrl(); if(!url) return Promise.reject(new Error('Backend URL is not configured.'));
+  return fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(p)})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .catch(function(){ return jsonp(url,p); })
+    .then(function(r){ if(r&&r.ok===false&&r.code===401){ bounce(); throw new Error('Session expired.'); } return r; });
+}
+function jsonp(url,payload){
+  return new Promise(function(res,rej){
+    var cb='cb_'+Math.random().toString(36).slice(2),s=document.createElement('script');
+    var to=setTimeout(function(){cl();rej(new Error('Backend did not respond.'));},45000);
+    function cl(){clearTimeout(to);try{delete window[cb];}catch(e){window[cb]=undefined;}if(s.parentNode)s.parentNode.removeChild(s);}
+    window[cb]=function(d){cl();res(d);};
+    s.onerror=function(){cl();rej(new Error('Could not reach the backend.'));};
+    s.src=url+(url.indexOf('?')>-1?'&':'?')+'callback='+cb+'&payload='+encodeURIComponent(JSON.stringify(payload));
+    document.body.appendChild(s);
+  });
+}
+function bounce(){ sessionStorage.clear(); localStorage.removeItem(LS.tok); location.href='index.html'; }
+if(!TOKEN||!USER){ bounce(); } else if(USER.role!=='HOD'){ location.href='coe.html'; }
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function n(v){ var x=parseInt(String(v===undefined?'':v).replace(/[^0-9-]/g,''),10); return isNaN(x)?0:x; }
+function fmtDate(v){ if(!v) return ''; var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return m[3]+'-'+m[2]+'-'+m[1];
+  var d=new Date(v); return isNaN(d.getTime())?String(v):('0'+d.getDate()).slice(-2)+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+d.getFullYear(); }
+function toast(msg,kind){
+  var d=document.createElement('div'); d.className='toast '+(kind||''); d.innerHTML=msg;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){ d.style.transition='all .3s'; d.style.opacity=0;
+    setTimeout(function(){ d.remove(); },300); }, kind==='err'?6500:4000);
+}
+function modal(title,desc,body,btns){
+  document.getElementById('mTitle').textContent=title;
+  document.getElementById('mDesc').innerHTML=desc||'';
+  document.getElementById('mBody').innerHTML=body||'';
+  var bw=document.getElementById('mBtns'); bw.innerHTML='';
+  (btns||[{t:'Close',c:'g'}]).forEach(function(b){
+    var el=document.createElement('button'); el.className='btn '+(b.c||''); el.innerHTML=b.t;
+    el.onclick=function(){ if(!b.fn||b.fn()!==false) closeModal(); }; bw.appendChild(el); });
+  document.getElementById('ov').classList.add('on');
+}
+function closeModal(){ document.getElementById('ov').classList.remove('on'); }
+document.getElementById('ov').onclick=function(e){ if(e.target===this) closeModal(); };
+function busy(b,on,l){ if(!b) return;
+  if(on){ b.dataset.h=b.innerHTML; b.disabled=true; b.innerHTML='<span class="spin2"></span>'+(l||'Working&hellip;'); }
+  else { b.disabled=false; if(b.dataset.h) b.innerHTML=b.dataset.h; } }
+function stat(k,v,s,p){ return '<div class="stat"><div class="k">'+k+'</div><div class="v">'+v+'</div>'+
+  '<div class="s">'+s+'</div>'+(p!==undefined?'<div class="bar"><i style="width:'+p+'%"></i></div>':'')+'</div>'; }
+
+/* ---------- theme / nav ---------- */
+(function(){ var t=localStorage.getItem(LS.theme)||'dark';
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('themeBtn').innerHTML=t==='dark'?'&#9790;':'&#9728;'; })();
+document.getElementById('themeBtn').onclick=function(){
+  var nx=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',nx); localStorage.setItem(LS.theme,nx);
+  this.innerHTML=nx==='dark'?'&#9790;':'&#9728;'; };
+document.getElementById('burger').onclick=function(){
+  document.getElementById('nav').classList.toggle('open');
+  document.getElementById('scrim').classList.toggle('on'); };
+document.getElementById('scrim').onclick=function(){
+  document.getElementById('nav').classList.remove('open'); this.classList.remove('on'); };
+document.getElementById('logout').onclick=function(){
+  modal('Sign out','End this session and return to the login page?','',
+    [{t:'Cancel',c:'g'},{t:'Sign out',c:'dg',fn:function(){ api({action:'logout'}).catch(function(){}); bounce(); }}]); };
+function go(v){
+  document.querySelectorAll('.nv').forEach(function(x){ x.classList.toggle('on',x.dataset.v===v); });
+  document.querySelectorAll('.view').forEach(function(x){ x.classList.toggle('on',x.id==='v-'+v); });
+  document.getElementById('nav').classList.remove('open');
+  document.getElementById('scrim').classList.remove('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(v==='plan') renderPlan();
+}
+document.querySelectorAll('.nv').forEach(function(el){ el.onclick=function(){ go(el.dataset.v); }; });
+document.querySelectorAll('[data-go]').forEach(function(el){ el.onclick=function(){ go(el.dataset.go); }; });
+
+/* =============================== BOOT =============================== */
+function boot(){
+  document.getElementById('uname').textContent=USER.name||'';
+  document.getElementById('urole').textContent='Board chairman';
+  document.getElementById('av').textContent=(USER.name||'H').split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+  BOARD=USER.board||'';
+  document.getElementById('boardTag').textContent=BOARD?('Board : '+BOARD):'Board chairman console';
+  document.getElementById('dashSub').textContent=BOARD
+    ? 'Allotment position for board '+BOARD+'.'
+    : 'No board is set on your account — ask the COE office to fill the Board column in the Users sheet.';
+  reload();
+}
+function reload(){
+  return Promise.all([
+      api({action:'dataList',board:BOARD||'ALL'}),
+      api({action:'examinerList',type:'EXTERNAL'}),
+      api({action:'examinerList',type:'INTERNAL'})
+    ]).then(function(r){
+      DATA=(r[0]&&r[0].rows)||[]; EXT=(r[1]&&r[1].rows)||[]; INT=(r[2]&&r[2].rows)||[];
+      DIRTY={}; buildCourses(); renderAll();
+    }).catch(function(e){ toast(e.message,'err'); });
+}
+function buildCourses(){
+  var map={},order=[];
+  DATA.forEach(function(r){
+    var c=r['Course Code'];
+    if(!map[c]){ map[c]={code:c,name:r['Course Name'],sem:r['Sem'],date:r['Date'],session:r['Session'],
+      bundles:0,papers:0,assigned:0}; order.push(c); }
+    map[c].bundles++; map[c].papers+=n(r['No. of Papers']);
+    if(String(r['Alloted Faculty ID']).trim()) map[c].assigned++;
+  });
+  COURSES=order.map(function(c){ return map[c]; });
+}
+function renderAll(){
+  document.getElementById('cCourse').textContent=COURSES.length;
+  document.getElementById('cBundle').textContent=DATA.length;
+  document.getElementById('cExt').textContent=EXT.filter(onBoard).length;
+  document.getElementById('cInt').textContent=INT.length;
+  renderStats(); renderCourses(); fillCourseFilter(); renderAllot(); renderExt(); renderInt();
+}
+function onBoard(e){ return !BOARD || String(e['Board']).trim().toUpperCase()===BOARD.toUpperCase(); }
+
+/* =============================== DASHBOARD =============================== */
+function renderStats(){
+  var papers=DATA.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+  var done=DATA.filter(function(r){ return String(r['Alloted Faculty ID']).trim(); }).length;
+  var pct=DATA.length?Math.round(100*done/DATA.length):0;
+  var ints=DATA.filter(function(r){ return /^INT/i.test(String(r['Alloted Faculty ID'])); }).length;
+  var exts=DATA.filter(function(r){ return /^EXT/i.test(String(r['Alloted Faculty ID'])); }).length;
+  document.getElementById('stats').innerHTML=
+    stat('Courses',COURSES.length,'in your board')+
+    stat('Bundles',DATA.length,done+' allotted',pct)+
+    stat('Answer scripts',papers.toLocaleString('en-IN'),'total to be valued')+
+    stat('Valuators engaged',ints+exts?(new Set(DATA.filter(function(r){return String(r['Alloted Faculty ID']).trim();})
+      .map(function(r){return r['Alloted Faculty ID'];})).size):0,ints+' internal / '+exts+' external bundles');
+  document.getElementById('progBox').innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'+
+    '<b style="font-size:24px">'+pct+'%</b><span style="color:var(--dim);font-size:12.5px">'+done+' of '+DATA.length+' bundles</span></div>'+
+    '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+    (pct===100?'<div class="note s" style="margin-top:12px">Every bundle in your board has a valuator.</div>'
+      :'<div class="note w" style="margin-top:12px"><b>'+(DATA.length-done)+'</b> bundle(s) still need a valuator.</div>');
+  var un=DATA.filter(function(r){ return !String(r['Alloted Faculty ID']).trim(); });
+  document.getElementById('unBox').innerHTML=un.length
+    ? '<div style="font-size:12px;color:var(--dim);margin-bottom:7px">Next unallotted bundles</div>'+
+      un.slice(0,6).map(function(r){ return '<div style="font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line)">'+
+        '<b>'+esc(r['Course Code'])+'</b> &middot; bundle '+esc(r['Bundle No.'])+' &middot; '+esc(r['No. of Papers'])+' papers</div>'; }).join('')
+    : '<div class="note s">Nothing pending.</div>';
+}
+document.getElementById('refresh').onclick=function(){ var b=this; busy(b,true); reload().finally(function(){ busy(b,false); }); };
+
+/* =============================== COURSE SUMMARY =============================== */
+function renderCourses(){
+  var q=(document.getElementById('csSearch').value||'').toLowerCase();
+  var rows=COURSES.filter(function(c){ return !q || (c.code+' '+c.name).toLowerCase().indexOf(q)>-1; });
+  var t=document.getElementById('csTable');
+  if(!rows.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128218;</span>'+
+    'No bundles have been generated for your board yet.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th class="c">#</th><th>Course Code</th><th>Course Name</th><th class="c">Sem</th>'+
+    '<th>Exam Date</th><th class="c">Session</th><th class="n">Bundles</th><th class="n">Total Papers</th>'+
+    '<th class="c">Allotment</th></tr></thead><tbody>';
+  rows.forEach(function(c,i){
+    var p=c.bundles?Math.round(100*c.assigned/c.bundles):0;
+    h+='<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(c.code)+'</b></td><td>'+esc(c.name)+'</td>'+
+      '<td class="c">'+esc(c.sem)+'</td><td>'+fmtDate(c.date)+'</td><td class="c">'+esc(c.session)+'</td>'+
+      '<td class="n">'+c.bundles+'</td><td class="n"><b>'+c.papers+'</b></td>'+
+      '<td class="c"><span class="pill '+(p===100?'ok':(p?'warn':'dim'))+'">'+c.assigned+' / '+c.bundles+'</span></td></tr>';
+  });
+  var tp=rows.reduce(function(a,c){ return a+c.papers; },0);
+  var tb=rows.reduce(function(a,c){ return a+c.bundles; },0);
+  h+='<tr style="background:var(--hov)"><td colspan="6" style="text-align:right"><b>Total</b></td>'+
+     '<td class="n"><b>'+tb+'</b></td><td class="n"><b>'+tp+'</b></td><td></td></tr>';
+  t.innerHTML=h+'</tbody>';
+}
+document.getElementById('csSearch').oninput=renderCourses;
+document.getElementById('csExport').onclick=function(){
+  var rows=[['S.No.','Course Code','Course Name','Sem','Exam Date','Session','Bundles','Total Papers','Allotted']];
+  COURSES.forEach(function(c,i){ rows.push([i+1,c.code,c.name,c.sem,fmtDate(c.date),c.session,c.bundles,c.papers,c.assigned]); });
+  rows.push(['','','','','','Total',COURSES.reduce(function(a,c){return a+c.bundles;},0),
+             COURSES.reduce(function(a,c){return a+c.papers;},0),'']);
+  var csv=rows.map(function(r){ return r.map(function(c){ c=String(c===undefined?'':c);
+    return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(','); }).join('\r\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='CourseSummary_'+(BOARD||'board')+'.csv'; a.click();
+  toast('Course summary exported.','ok');
+};
+
+/* =============================== BUNDLE ALLOTMENT =============================== */
+function fillCourseFilter(){
+  var sel=document.getElementById('alCourse'), cur=sel.value;
+  sel.innerHTML='<option value="">All courses</option>'+COURSES.map(function(c){
+    return '<option value="'+esc(c.code)+'">'+esc(c.code)+' &mdash; '+esc(c.name)+'</option>'; }).join('');
+  sel.value=cur;
+  var ds={}; INT.forEach(function(f){ if(f['Department']) ds[f['Department']]=1; });
+  var dsel=document.getElementById('inDept'), dcur=dsel.value;
+  dsel.innerHTML='<option value="">All departments</option>'+Object.keys(ds).sort().map(function(d){
+    return '<option>'+esc(d)+'</option>'; }).join('');
+  dsel.value=dcur;
+}
+function filteredBundles(){
+  var c=document.getElementById('alCourse').value;
+  var st=document.getElementById('alStatus').value;
+  var q=(document.getElementById('alSearch').value||'').toLowerCase();
+  return DATA.filter(function(r){
+    if(c && r['Course Code']!==c) return false;
+    var has=!!String(r['Alloted Faculty ID']).trim() || !!(DIRTY[r._row]&&DIRTY[r._row].facultyId);
+    if(st==='un' && has) return false;
+    if(st==='as' && !has) return false;
+    if(!q) return true;
+    return (r['Course Code']+' '+r['Course Name']+' '+r['Bundle No.']+' '+(r['Faculty Name']||'')+' '+
+            (r['Alloted Faculty ID']||'')).toLowerCase().indexOf(q)>-1;
+  });
+}
+function renderAllot(){
+  var rows=filteredBundles();
+  document.getElementById('alCount').textContent=rows.length+' / '+DATA.length;
+  var t=document.getElementById('alTable');
+  if(!rows.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128230;</span>'+
+    'No bundles match. The COE office generates these once the examination is over.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th style="width:32px"><input type="checkbox" id="alAll"></th><th class="c">#</th>'+
+    '<th>Course</th><th class="c">Bundle</th><th class="n">Foilcard</th><th class="c">Dummy range</th>'+
+    '<th class="n">Papers</th><th style="min-width:110px">Type</th><th style="min-width:190px">Valuator</th>'+
+    '<th class="c">Status</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var d=DIRTY[r._row]||{};
+    var curType=d.facultyType!==undefined?d.facultyType:(/^EXT/i.test(String(r['Alloted Faculty ID']))?'EXTERNAL':
+      (String(r['Alloted Faculty ID']).trim()?'INTERNAL':''));
+    var curId=d.facultyId!==undefined?d.facultyId:String(r['Alloted Faculty ID']||'');
+    var curDept=d.dept!==undefined?d.dept:(r['Faculty Department']||'');
+    h+='<tr class="'+(curId?'':'un')+'" data-row="'+r._row+'">'+
+      '<td><input type="checkbox" class="alChk" data-row="'+r._row+'"></td>'+
+      '<td class="c">'+esc(r['S.No.'])+'</td>'+
+      '<td style="min-width:185px"><b>'+esc(r['Course Code'])+'</b>'+
+        '<div style="font-size:11px;color:var(--faint)">'+esc(r['Course Name'])+'</div></td>'+
+      '<td class="c"><b>'+esc(r['Bundle No.'])+'</b></td>'+
+      '<td class="n">'+esc(r['Foilcard No.'])+'</td>'+
+      '<td class="c">'+esc(r['Dummy No. From'])+' &ndash; '+esc(r['Dummy No. To'])+'</td>'+
+      '<td class="n"><b>'+esc(r['No. of Papers'])+'</b></td>'+
+      '<td><select class="inp" data-k="type" style="padding:6px 8px;font-size:12px">'+
+        '<option value="">&mdash;</option>'+
+        '<option value="INTERNAL"'+(curType==='INTERNAL'?' selected':'')+'>Internal</option>'+
+        '<option value="EXTERNAL"'+(curType==='EXTERNAL'?' selected':'')+'>External</option></select></td>'+
+      '<td data-cell="fac">'+facultyCell(curType,curId,curDept)+'</td>'+
+      '<td class="c" data-cell="st">'+(DIRTY[r._row]?'<span class="pill warn">unsaved</span>':
+        (curId?'<span class="pill ok">'+esc(curId)+'</span>':'<span class="pill dim">open</span>'))+'</td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+  wireAllotRows();
+  var all=document.getElementById('alAll');
+  if(all) all.onclick=function(){ document.querySelectorAll('.alChk').forEach(function(c){ c.checked=all.checked; }); };
+}
+function facultyCell(type,id,dept){
+  if(type==='EXTERNAL'){
+    var list=EXT.filter(onBoard);
+    return '<select class="inp" data-k="fac" style="padding:6px 8px;font-size:12px"><option value="">Select examiner</option>'+
+      list.map(function(f){ return '<option value="'+esc(f['ID'])+'"'+(f['ID']===id?' selected':'')+'>'+
+        esc(f['ID'])+' &mdash; '+esc(f['Name of the Faculty'])+(f['College Name']?' ('+esc(f['College Name'])+')':'')+'</option>'; }).join('')+
+      '</select>';
+  }
+  if(type==='INTERNAL'){
+    var ds={}; INT.forEach(function(f){ if(f['Department']) ds[f['Department']]=1; });
+    var pool=INT.filter(function(f){ return !dept || String(f['Department'])===dept; });
+    return '<div class="selwrap"><select class="inp" data-k="dept" style="padding:6px 8px;font-size:12px;max-width:110px">'+
+      '<option value="">Dept</option>'+Object.keys(ds).sort().map(function(d){
+        return '<option'+(d===dept?' selected':'')+'>'+esc(d)+'</option>'; }).join('')+'</select>'+
+      '<select class="inp" data-k="fac" style="padding:6px 8px;font-size:12px"><option value="">Select faculty</option>'+
+      pool.map(function(f){ return '<option value="'+esc(f['ID'])+'"'+(f['ID']===id?' selected':'')+'>'+
+        esc(f['ID'])+' &mdash; '+esc(f['Name of the Faculty'])+'</option>'; }).join('')+'</select></div>';
+  }
+  return '<span style="color:var(--faint);font-size:12px">Choose Internal or External first</span>';
+}
+function wireAllotRows(){
+  document.querySelectorAll('#alTable tbody tr').forEach(function(tr){
+    var row=n(tr.dataset.row);
+    var mark=function(obj){
+      DIRTY[row]=Object.assign({},DIRTY[row]||{},obj);
+      tr.querySelector('[data-cell="st"]').innerHTML='<span class="pill warn">unsaved</span>';
+      tr.classList.toggle('un',!DIRTY[row].facultyId);
+      updateDirty();
+    };
+    var tsel=tr.querySelector('[data-k="type"]');
+    if(tsel) tsel.onchange=function(){
+      mark({facultyType:tsel.value,facultyId:'',dept:''});
+      tr.querySelector('[data-cell="fac"]').innerHTML=facultyCell(tsel.value,'','');
+      wireAllotRows();
+    };
+    var dsel=tr.querySelector('[data-k="dept"]');
+    if(dsel) dsel.onchange=function(){
+      var d=DIRTY[row]||{}; mark({dept:dsel.value,facultyId:''});
+      tr.querySelector('[data-cell="fac"]').innerHTML=facultyCell('INTERNAL','',dsel.value);
+      wireAllotRows();
+    };
+    var fsel=tr.querySelector('[data-k="fac"]');
+    if(fsel) fsel.onchange=function(){
+      var ty=(tr.querySelector('[data-k="type"]')||{}).value||'';
+      mark({facultyType:ty,facultyId:fsel.value});
+    };
+  });
+}
+function updateDirty(){
+  var k=Object.keys(DIRTY).length;
+  document.getElementById('alDirty').textContent=k?('('+k+')'):'';
+  document.getElementById('alSave').disabled=!k;
+}
+['alCourse','alStatus','alSearch'].forEach(function(id){
+  document.getElementById(id).oninput=renderAllot; document.getElementById(id).onchange=renderAllot; });
+
+document.getElementById('alSave').onclick=function(){
+  var items=Object.keys(DIRTY).map(function(row){
+    var d=DIRTY[row];
+    return {rowIndex:n(row),facultyType:d.facultyType||'',facultyId:d.facultyId||''};
+  });
+  var bad=items.filter(function(i){ return i.facultyType && !i.facultyId; });
+  if(bad.length){
+    modal('Incomplete rows',bad.length+' bundle(s) have a type chosen but no valuator selected. '+
+      'Save the rest and come back, or pick the valuator first.','',
+      [{t:'Go back',c:'g'},{t:'Save the complete ones',c:'',fn:function(){ doSave(items.filter(function(i){
+        return !i.facultyType || i.facultyId; })); }}]);
+    return;
+  }
+  doSave(items);
+};
+function doSave(items){
+  if(!items.length){ toast('Nothing to save.','warn'); return; }
+  var b=document.getElementById('alSave'); busy(b,true,'Saving');
+  api({action:'assignBulk',items:items}).then(function(r){
+    if(!r.ok) throw new Error(r.error);
+    document.getElementById('alMsg').innerHTML='<div class="note s"><b>'+r.assigned+'</b> bundle(s) updated in the Data sheet.'+
+      ((r.errors&&r.errors.length)?'<ul>'+r.errors.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>':'')+'</div>';
+    toast(r.assigned+' allotment(s) saved.','ok');
+    return reload();
+  }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); updateDirty(); });
+}
+document.getElementById('alBulk').onclick=function(){
+  var sel=[].slice.call(document.querySelectorAll('.alChk:checked')).map(function(c){ return n(c.dataset.row); });
+  var scope=sel.length?sel:filteredBundles().filter(function(r){ return !String(r['Alloted Faculty ID']).trim(); })
+    .map(function(r){ return r._row; });
+  if(!scope.length){ toast('Nothing selected and nothing unallotted in view.','warn'); return; }
+  var extOpts=EXT.filter(onBoard).map(function(f){ return '<option value="EXTERNAL|'+esc(f['ID'])+'">EXT &middot; '+
+    esc(f['ID'])+' &mdash; '+esc(f['Name of the Faculty'])+'</option>'; }).join('');
+  var intOpts=INT.map(function(f){ return '<option value="INTERNAL|'+esc(f['ID'])+'">INT &middot; '+
+    esc(f['ID'])+' &mdash; '+esc(f['Name of the Faculty'])+' ('+esc(f['Department'])+')</option>'; }).join('');
+  modal('Bulk assign',(sel.length?('<b>'+sel.length+'</b> selected bundle(s)'):
+      ('all <b>'+scope.length+'</b> unallotted bundle(s) in the current view'))+' will go to one valuator.',
+    '<label class="lb">Valuator</label><select class="inp" id="bulkFac">'+
+    '<option value="">Select a valuator</option><optgroup label="External">'+extOpts+'</optgroup>'+
+    '<optgroup label="Internal">'+intOpts+'</optgroup></select>',
+    [{t:'Cancel',c:'g'},{t:'Assign',c:'',fn:function(){
+      var v=document.getElementById('bulkFac').value;
+      if(!v){ toast('Pick a valuator first.','err'); return false; }
+      var p=v.split('|');
+      doSave(scope.map(function(row){ return {rowIndex:row,facultyType:p[0],facultyId:p[1]}; }));
+    }}]);
+};
+
+/* =============================== SESSION PLANNER =============================== */
+function renderPlan(){
+  var t=document.getElementById('plTable');
+  if(!DATA.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128197;</span>No bundles yet.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th style="width:32px"><input type="checkbox" id="plAll"></th><th class="c">#</th>'+
+    '<th>Course</th><th class="c">Bundle</th><th class="n">Papers</th><th>Valuator</th>'+
+    '<th class="c">Day</th><th class="c">Session</th></tr></thead><tbody>';
+  DATA.forEach(function(r){
+    h+='<tr><td><input type="checkbox" class="plChk" data-row="'+r._row+'"></td><td class="c">'+esc(r['S.No.'])+'</td>'+
+      '<td><b>'+esc(r['Course Code'])+'</b> <span style="color:var(--faint)">'+esc(r['Course Name'])+'</span></td>'+
+      '<td class="c">'+esc(r['Bundle No.'])+'</td><td class="n">'+esc(r['No. of Papers'])+'</td>'+
+      '<td>'+(r['Alloted Faculty ID']?esc(r['Alloted Faculty ID'])+' &middot; '+esc(r['Faculty Name']):
+        '<span class="pill dim">open</span>')+'</td>'+
+      '<td class="c">'+(r['Valuation Day']?'<span class="pill inf">'+esc(r['Valuation Day'])+'</span>':'&mdash;')+'</td>'+
+      '<td class="c">'+(r['Valuation Session']?'<span class="pill inf">'+esc(r['Valuation Session'])+'</span>':'&mdash;')+'</td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+  var all=document.getElementById('plAll');
+  if(all) all.onclick=function(){ document.querySelectorAll('.plChk').forEach(function(c){ c.checked=all.checked; }); };
+}
+document.getElementById('plApply').onclick=function(){
+  var scope=document.getElementById('plScope').value;
+  var rows=scope==='sel'
+    ? [].slice.call(document.querySelectorAll('.plChk:checked')).map(function(c){ return n(c.dataset.row); })
+    : DATA.filter(function(r){ return !String(r['Valuation Day']).trim(); }).map(function(r){ return r._row; });
+  if(!rows.length){ toast('Nothing to apply to.','warn'); return; }
+  var day=document.getElementById('plDay').value, ses=document.getElementById('plSes').value;
+  var b=this; busy(b,true,'Applying');
+  api({action:'setSessionDay',items:rows.map(function(r){ return {rowIndex:r,day:day,valSession:ses}; })})
+    .then(function(r){ if(!r.ok) throw new Error(r.error);
+      toast(rows.length+' bundle(s) set to '+day+' '+ses+'.','ok'); return reload().then(renderPlan); })
+    .catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
+};
+
+/* =============================== EXTERNAL EXAMINERS =============================== */
+function renderExt(){
+  var q=(document.getElementById('exSearch').value||'').toLowerCase();
+  var only=document.getElementById('exOnly').value;
+  var used={}; DATA.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim();
+    if(id) used[id]=(used[id]||0)+n(r['No. of Papers']); });
+  var bundles={}; DATA.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim();
+    if(id) bundles[id]=(bundles[id]||0)+1; });
+  var list=EXT.filter(onBoard).filter(function(f){
+    if(only==='as' && !used[f['ID']]) return false;
+    if(!q) return true;
+    return (f['Name of the Faculty']+' '+f['College Name']+' '+f['College City']+' '+f['Department'])
+      .toLowerCase().indexOf(q)>-1;
+  });
+  var box=document.getElementById('exCards');
+  if(!list.length){ box.innerHTML='<div class="empty"><span class="e">&#128222;</span>'+
+    'No external examiners listed for board '+esc(BOARD||'')+' yet. The COE office uploads this directory.</div>'; return; }
+  box.innerHTML=list.map(function(f){
+    var mob=String(f['Mobile Number']||'').replace(/\s+/g,'');
+    var load=used[f['ID']]?('<span class="pill ok">'+bundles[f['ID']]+' bundle(s) &middot; '+used[f['ID']]+' papers</span>')
+      :'<span class="pill dim">not allotted</span>';
+    return '<div class="exc"><div class="nm">'+esc(f['Name of the Faculty'])+
+      ' <span class="pill inf">'+esc(f['ID'])+'</span> '+load+'</div>'+
+      '<div class="meta">'+esc(f['Designation']||'')+(f['Department']?' &middot; '+esc(f['Department']):'')+
+      (f['Board']?' &middot; Board '+esc(f['Board']):'')+'<br>'+
+      esc(f['College Code']||'')+' '+esc(f['College Name']||'')+(f['College City']?', '+esc(f['College City']):'')+
+      (f['Total Year of Experience']?'<br>Experience: '+esc(f['Total Year of Experience'])+' years':'')+
+      (mob?'<br>Mobile: <b>'+esc(mob)+'</b>':'')+'</div>'+
+      '<div class="acts">'+
+      (mob?'<a class="call" href="tel:'+esc(mob)+'">&#128222; Call</a>':'')+
+      (mob?'<a href="https://wa.me/91'+esc(mob.replace(/^(\+?91)?/,''))+'" target="_blank" rel="noopener">&#128172; WhatsApp</a>':'')+
+      (mob?'<a href="sms:'+esc(mob)+'">&#9993; SMS</a>':'')+
+      (f['Mail ID']?'<a href="mailto:'+esc(f['Mail ID'])+'">&#128231; E-mail</a>':'')+
+      '</div></div>';
+  }).join('');
+}
+['exSearch','exOnly'].forEach(function(id){ document.getElementById(id).oninput=renderExt;
+  document.getElementById(id).onchange=renderExt; });
+
+/* =============================== INTERNAL FACULTY =============================== */
+function renderInt(){
+  var q=(document.getElementById('inSearch').value||'').toLowerCase();
+  var dp=document.getElementById('inDept').value;
+  var load={},bund={};
+  DATA.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim(); if(!id) return;
+    load[id]=(load[id]||0)+n(r['No. of Papers']); bund[id]=(bund[id]||0)+1; });
+  var list=INT.filter(function(f){
+    if(dp && String(f['Department'])!==dp) return false;
+    if(!q) return true;
+    return (f['Name of the Faculty']+' '+f['Designation']+' '+f['Department']).toLowerCase().indexOf(q)>-1;
+  });
+  var t=document.getElementById('inTable');
+  if(!list.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128101;</span>'+
+    'No internal faculty listed yet.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th>ID</th><th>Name of the Faculty</th><th>Department</th><th>Designation</th>'+
+    '<th class="n">Experience</th><th class="c">Contact</th><th class="n">Bundles</th><th class="n">Papers</th></tr></thead><tbody>';
+  list.forEach(function(f){
+    var mob=String(f['Mobile']||'').replace(/\s+/g,'');
+    h+='<tr><td><span class="pill inf">'+esc(f['ID'])+'</span></td><td><b>'+esc(f['Name of the Faculty'])+'</b></td>'+
+      '<td>'+esc(f['Department'])+'</td><td>'+esc(f['Designation'])+'</td>'+
+      '<td class="n">'+esc(f['Year of Experience'])+'</td>'+
+      '<td class="c">'+(mob?'<a href="tel:'+esc(mob)+'" style="color:var(--a1);font-weight:600">&#128222; '+esc(mob)+'</a>':'&mdash;')+'</td>'+
+      '<td class="n">'+(bund[f['ID']]||0)+'</td><td class="n"><b>'+(load[f['ID']]||0)+'</b></td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+}
+['inSearch','inDept'].forEach(function(id){ document.getElementById(id).oninput=renderInt;
+  document.getElementById(id).onchange=renderInt; });
+
+/* =============================== GO =============================== */
+boot();
+</script>
+</body>
+</html>

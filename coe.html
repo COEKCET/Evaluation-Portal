@@ -1,0 +1,2739 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>COE Console &middot; Evaluation Portal</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+/* ==================== TOKENS ==================== */
+:root{
+  --font:"Segoe UI",system-ui,-apple-system,"Inter",Roboto,Arial,sans-serif;
+  --mono:"JetBrains Mono","Consolas",monospace;
+  --r-sm:8px; --r:12px; --r-lg:18px; --t:.24s cubic-bezier(.4,0,.2,1);
+  --nav:252px; --top:62px;
+}
+html[data-theme="dark"]{
+  --bg:#070b16; --bg2:#0b1120; --card:#111a2e; --card2:#0e1627; --hov:#16203a;
+  --line:rgba(130,160,220,.16); --line2:rgba(130,160,220,.28);
+  --txt:#e8eefc; --dim:#93a3c4; --faint:#5f6f91;
+  --a1:#5b8cff; --a2:#9b6bff; --a3:#22d3ee;
+  --ok:#34d399; --warn:#fbbf24; --err:#f87171;
+  --sh:0 14px 44px -16px rgba(0,0,0,.8); --inp:#0a1120;
+}
+html[data-theme="light"]{
+  --bg:#eff3fa; --bg2:#ffffff; --card:#ffffff; --card2:#f7f9fd; --hov:#eef3fc;
+  --line:rgba(30,58,110,.13); --line2:rgba(30,58,110,.26);
+  --txt:#0e1a33; --dim:#4a5d7e; --faint:#8294b3;
+  --a1:#2f5fe0; --a2:#7c3aed; --a3:#0891b2;
+  --ok:#059669; --warn:#d97706; --err:#dc2626;
+  --sh:0 12px 34px -16px rgba(20,40,90,.4); --inp:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--txt);min-height:100dvh;font-size:14px;
+  transition:background var(--t),color var(--t);-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ==================== TOPBAR ==================== */
+.top{position:fixed;top:0;left:0;right:0;height:var(--top);z-index:40;display:flex;align-items:center;
+  gap:14px;padding:0 16px;background:color-mix(in srgb,var(--bg2) 86%,transparent);
+  backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.3px;white-space:nowrap}
+.logo i{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--a1),var(--a2));
+  display:grid;place-items:center;color:#fff;font-style:normal;font-size:13px;font-weight:800}
+.logo small{display:block;font-size:10.5px;color:var(--faint);font-weight:500;letter-spacing:.2px}
+.top .sp{flex:1}
+.ibtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);
+  color:var(--txt);cursor:pointer;display:grid;place-items:center;font-size:16px;transition:all var(--t)}
+.ibtn:hover{border-color:var(--a1);color:var(--a1)}
+.who{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 6px;border:1px solid var(--line);
+  border-radius:99px;background:var(--card)}
+.av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--a1),var(--a2));
+  display:grid;place-items:center;color:#fff;font-size:11.5px;font-weight:700}
+.who b{font-size:12.5px;display:block;line-height:1.25}
+.who span{font-size:10.5px;color:var(--faint)}
+@media(max-width:700px){.who b,.who span{display:none}.who{padding:5px}.logo small{display:none}}
+#burger{display:none}
+@media(max-width:980px){#burger{display:grid}}
+
+/* ==================== SIDEBAR ==================== */
+.nav{position:fixed;top:var(--top);bottom:0;left:0;width:var(--nav);background:var(--bg2);
+  border-right:1px solid var(--line);padding:16px 12px;overflow-y:auto;z-index:35;transition:transform var(--t)}
+.nav h6{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);margin:18px 10px 8px;font-weight:700}
+.nav h6:first-child{margin-top:4px}
+.nv{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r);cursor:pointer;
+  color:var(--dim);font-size:13.5px;font-weight:500;transition:all var(--t);margin-bottom:3px;border:1px solid transparent}
+.nv:hover{background:var(--hov);color:var(--txt)}
+.nv.on{background:linear-gradient(135deg,rgba(91,140,255,.16),rgba(155,107,255,.09));
+  color:var(--txt);border-color:rgba(91,140,255,.3);font-weight:600}
+.nv .e{font-size:15px;width:19px;text-align:center}
+.nv .cnt{margin-left:auto;font-size:10.5px;background:var(--hov);padding:2px 7px;border-radius:99px;color:var(--faint)}
+.nv.on .cnt{background:rgba(91,140,255,.2);color:var(--a1)}
+@media(max-width:980px){.nav{transform:translateX(-100%);box-shadow:var(--sh)}.nav.open{transform:none}}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:34;display:none}
+.scrim.on{display:block}
+
+/* ==================== MAIN ==================== */
+main{margin-left:var(--nav);padding:calc(var(--top) + 20px) 22px 60px;max-width:1700px}
+@media(max-width:980px){main{margin-left:0;padding:calc(var(--top) + 16px) 14px 70px}}
+.view{display:none;animation:fade .3s}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.head h2{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.head p{color:var(--dim);font-size:13px;margin-top:4px;max-width:78ch}
+
+/* ==================== CARDS ==================== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;
+  box-shadow:var(--sh);margin-bottom:16px}
+.card>h3{font-size:14.5px;font-weight:650;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card>.cd{font-size:12.5px;color:var(--dim);margin-bottom:14px;line-height:1.55}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
+
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;position:relative;overflow:hidden;transition:all var(--t)}
+.stat:hover{transform:translateY(-3px);border-color:var(--line2)}
+.stat::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--a1),var(--a2))}
+.stat .k{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;font-weight:650}
+.stat .v{font-size:27px;font-weight:750;margin:7px 0 2px;letter-spacing:-.8px}
+.stat .s{font-size:11.5px;color:var(--dim)}
+.bar{height:6px;border-radius:99px;background:var(--hov);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--a1),var(--a3));
+  transition:width .8s cubic-bezier(.2,.8,.2,1)}
+
+/* ==================== FORM ==================== */
+label.lb{display:block;font-size:11px;font-weight:650;color:var(--dim);margin-bottom:5px;
+  letter-spacing:.4px;text-transform:uppercase}
+.inp,select.inp,textarea.inp{width:100%;padding:9px 11px;font:inherit;font-size:13.5px;color:var(--txt);
+  background:var(--inp);border:1.5px solid var(--line);border-radius:var(--r-sm);outline:none;transition:all var(--t)}
+.inp:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(91,140,255,.14)}
+.inp:disabled{opacity:.55;cursor:not-allowed}
+select.inp{cursor:pointer;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--faint) 50%),linear-gradient(135deg,var(--faint) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 51%,calc(100% - 10px) 51%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+.fr{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fr>div{flex:1 1 150px;min-width:0}
+.btn{padding:9px 15px;border:0;border-radius:var(--r-sm);font:inherit;font-size:13px;font-weight:620;color:#fff;
+  background:linear-gradient(135deg,var(--a1),var(--a2));cursor:pointer;transition:all var(--t);
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;box-shadow:0 7px 18px -8px var(--a1)}
+.btn:hover:not(:disabled){transform:translateY(-1.5px);box-shadow:0 11px 24px -8px var(--a1)}
+.btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;filter:grayscale(.4)}
+.btn.sm{padding:6px 11px;font-size:12px}
+.btn.g{background:transparent;color:var(--dim);border:1.5px solid var(--line);box-shadow:none}
+.btn.g:hover:not(:disabled){border-color:var(--a1);color:var(--a1);transform:none}
+.btn.ok{background:linear-gradient(135deg,var(--ok),#0ea371);box-shadow:0 7px 18px -8px var(--ok)}
+.btn.dg{background:linear-gradient(135deg,var(--err),#b91c1c);box-shadow:0 7px 18px -8px var(--err)}
+.btn.wn{background:linear-gradient(135deg,var(--warn),#c2410c);box-shadow:0 7px 18px -8px var(--warn)}
+.btns{display:flex;gap:9px;flex-wrap:wrap}
+
+/* ==================== TABLE ==================== */
+.tw{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card2);max-height:65vh;
+  -webkit-overflow-scrolling:touch}
+table.t{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:620px}
+table.t th{position:sticky;top:0;z-index:2;background:var(--card);padding:9px 10px;text-align:left;
+  font-weight:650;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);
+  border-bottom:1.5px solid var(--line);white-space:nowrap}
+table.t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.t tr:last-child td{border-bottom:0}
+table.t tbody tr:hover{background:var(--hov)}
+table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
+table.t td.c,table.t th.c{text-align:center}
+table.t input.cell{width:100%;min-width:72px;padding:5px 7px;font:inherit;font-size:12.5px;color:var(--txt);
+  background:var(--inp);border:1.4px solid var(--line);border-radius:6px;outline:none}
+table.t input.cell.foil{min-width:112px;text-transform:uppercase}
+table.t input.cell:focus{border-color:var(--a1);box-shadow:0 0 0 2px rgba(91,140,255,.16)}
+table.t input.cell.bad{border-color:var(--err);background:rgba(248,113,113,.08)}
+table.t input.cell.good{border-color:var(--ok)}
+.pill{display:inline-block;padding:2.5px 9px;border-radius:99px;font-size:10.5px;font-weight:650;letter-spacing:.3px;white-space:nowrap}
+.pill.ok{background:rgba(52,211,153,.15);color:var(--ok)}
+.pill.err{background:rgba(248,113,113,.15);color:var(--err)}
+.pill.warn{background:rgba(251,191,36,.15);color:var(--warn)}
+.pill.dim{background:var(--hov);color:var(--faint)}
+.pill.inf{background:rgba(91,140,255,.15);color:var(--a1)}
+.empty{padding:38px 20px;text-align:center;color:var(--faint);font-size:13px}
+.empty .e{font-size:30px;display:block;margin-bottom:10px;opacity:.5}
+
+/* ==================== TABS ==================== */
+.tabs{display:flex;gap:5px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto;padding-bottom:1px}
+.tab{padding:9px 15px;cursor:pointer;font-size:13px;font-weight:600;color:var(--dim);border-bottom:2.5px solid transparent;
+  white-space:nowrap;transition:all var(--t)}
+.tab:hover{color:var(--txt)}
+.tab.on{color:var(--a1);border-bottom-color:var(--a1)}
+
+/* ==================== REPORT CARDS ==================== */
+.rep{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;
+  transition:all var(--t);display:flex;flex-direction:column;gap:11px}
+.rep:hover{border-color:var(--a1);transform:translateY(-3px);box-shadow:0 16px 34px -18px var(--a1)}
+.rep .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:18px;
+  background:linear-gradient(135deg,rgba(91,140,255,.18),rgba(155,107,255,.12));border:1px solid var(--line)}
+.rep h4{font-size:13.8px;font-weight:650}
+.rep p{font-size:11.8px;color:var(--dim);line-height:1.5;flex:1}
+.rep .fm{display:flex;gap:6px}
+.fmt{flex:1;padding:7px 4px;border-radius:var(--r-sm);border:1.4px solid var(--line);background:var(--card2);
+  color:var(--dim);font-size:11px;font-weight:650;cursor:pointer;text-align:center;transition:all var(--t)}
+.fmt:hover{border-color:var(--a1);color:var(--a1);background:rgba(91,140,255,.08)}
+
+/* ==================== TOAST / MODAL ==================== */
+#toasts{position:fixed;right:16px;bottom:16px;z-index:90;display:flex;flex-direction:column;gap:9px;max-width:380px}
+.toast{background:var(--card);border:1px solid var(--line);border-left:3.5px solid var(--a1);border-radius:var(--r);
+  padding:11px 14px;box-shadow:var(--sh);font-size:13px;animation:slip .3s;line-height:1.5}
+.toast.ok{border-left-color:var(--ok)} .toast.err{border-left-color:var(--err)} .toast.warn{border-left-color:var(--warn)}
+.toast b{display:block;font-size:12.5px;margin-bottom:2px}
+@keyframes slip{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@media(max-width:600px){#toasts{left:12px;right:12px;max-width:none}}
+
+.ov{position:fixed;inset:0;background:rgba(2,6,16,.7);backdrop-filter:blur(6px);z-index:80;display:none;
+  place-items:center;padding:18px}
+.ov.on{display:grid;animation:fade .2s}
+.mod{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;width:100%;
+  max-width:640px;max-height:88dvh;overflow:auto;box-shadow:var(--sh)}
+.mod h3{font-size:17px;margin-bottom:5px}
+.mod .cd{font-size:12.5px;color:var(--dim);margin-bottom:16px;line-height:1.55}
+.mrow{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+
+.note{padding:11px 13px;border-radius:var(--r);font-size:12.5px;line-height:1.6;border:1px solid transparent;margin-bottom:12px}
+.note.i{background:rgba(91,140,255,.09);border-color:rgba(91,140,255,.24);color:var(--a1)}
+.note.w{background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.26);color:var(--warn)}
+.note.e{background:rgba(248,113,113,.09);border-color:rgba(248,113,113,.26);color:var(--err)}
+.note.s{background:rgba(52,211,153,.09);border-color:rgba(52,211,153,.26);color:var(--ok)}
+.note ul{margin:6px 0 0 17px}
+.drop{border:2px dashed var(--line2);border-radius:var(--r);padding:26px 16px;text-align:center;cursor:pointer;
+  transition:all var(--t);background:var(--card2)}
+.drop:hover,.drop.hot{border-color:var(--a1);background:rgba(91,140,255,.07)}
+.drop .e{font-size:28px;display:block;margin-bottom:8px;opacity:.65}
+.drop b{font-size:13.5px;display:block;margin-bottom:3px}
+.drop small{font-size:11.5px;color:var(--faint)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:0}
+.kv b{color:var(--dim);font-weight:600}
+.spin2{width:15px;height:15px;border:2.2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
+  animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;background:var(--hov);
+  border:1px solid var(--line);font-size:11.5px;margin:0 5px 5px 0}
+.srch{position:relative}
+.srch input{padding-left:31px}
+.srch::before{content:"\1F50D";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.5}
+.logoBox{display:flex;align-items:center;justify-content:center;min-width:120px;min-height:64px;padding:6px 12px;
+  border:1.5px dashed var(--line2);border-radius:var(--r);background:#fff;color:#8294b3;font-size:11.5px}
+.logoBox img{max-height:56px;max-width:180px;display:block}
+</style>
+</head>
+<body>
+
+<!-- ========================= TOPBAR ========================= -->
+<div class="top">
+  <button class="ibtn" id="burger">&#9776;</button>
+  <div class="logo"><i>CoE</i><div>Evaluation Portal<small>Controller of Examinations</small></div></div>
+  <div class="sp"></div>
+  <button class="ibtn" id="themeBtn" title="Theme">&#9790;</button>
+  <div class="who"><div class="av" id="av">--</div><div><b id="uname">&mdash;</b><span id="urole">&mdash;</span></div></div>
+  <button class="ibtn" id="logout" title="Sign out">&#9211;</button>
+</div>
+
+<!-- ========================= SIDEBAR ========================= -->
+<div class="scrim" id="scrim"></div>
+<nav class="nav" id="nav">
+  <h6>Overview</h6>
+  <div class="nv on" data-v="dash"><span class="e">&#128202;</span>Dashboard</div>
+  <h6>Examination data</h6>
+  <div class="nv" data-v="before"><span class="e">&#128197;</span>Before Exam<span class="cnt" id="cBefore">0</span></div>
+  <div class="nv" data-v="during"><span class="e">&#9999;</span>During Exam<span class="cnt" id="cDuring">0</span></div>
+  <div class="nv" data-v="examiners"><span class="e">&#128101;</span>Examiners<span class="cnt" id="cExam">0</span></div>
+  <h6>Valuation</h6>
+  <div class="nv" data-v="generate"><span class="e">&#9881;</span>Generate Bundles<span class="cnt" id="cBundle">0</span></div>
+  <div class="nv" data-v="allot"><span class="e">&#128203;</span>Allotment Status</div>
+  <h6>After evaluation</h6>
+  <div class="nv" data-v="reval"><span class="e">&#128260;</span>Revaluation</div>
+  <h6>Output</h6>
+  <div class="nv" data-v="claims"><span class="e">&#128176;</span>Claims &amp; Analysis</div>
+  <div class="nv" data-v="reports"><span class="e">&#128196;</span>Reports</div>
+  <h6>Administration</h6>
+  <div class="nv" data-v="settings"><span class="e">&#9874;</span>Settings</div>
+  <div class="nv" data-v="users"><span class="e">&#128272;</span>Users</div>
+  <div class="nv" data-v="audit"><span class="e">&#128220;</span>Activity Log</div>
+</nav>
+
+<main>
+
+<!-- ========================= DASHBOARD ========================= -->
+<section class="view on" id="v-dash">
+  <div class="head"><div><h2>Dashboard</h2><p>Live position of the current examination cycle.</p></div>
+    <button class="btn g sm" id="refreshDash">&#8635; Refresh</button></div>
+
+  <div class="grid g4" id="statGrid"></div>
+
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <h3>&#9201; Entry progress</h3>
+      <div class="cd">Courses whose dummy-number tally is confirmed against the present count.</div>
+      <div id="progBox"></div>
+    </div>
+    <div class="card">
+      <h3>&#128205; Quick actions</h3>
+      <div class="cd">Jump straight to the step you are on.</div>
+      <div class="btns">
+        <button class="btn g sm" data-go="before">&#128197; Course schedule</button>
+        <button class="btn g sm" data-go="during">&#9999; Dummy entry</button>
+        <button class="btn g sm" data-go="examiners">&#128101; Examiners</button>
+        <button class="btn g sm" data-go="generate">&#9881; Generate bundles</button>
+        <button class="btn g sm" data-go="reval">&#128260; Revaluation</button>
+        <button class="btn g sm" data-go="claims">&#128176; Claims</button>
+        <button class="btn g sm" data-go="reports">&#128196; Reports</button>
+      </div>
+      <div style="margin-top:16px" id="cfgPeek"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= BEFORE EXAM ========================= -->
+<section class="view" id="v-before">
+  <div class="head"><div><h2>Before Exam &mdash; course schedule</h2>
+    <p>The master list of every course being examined. Everything downstream is built from this sheet.</p></div></div>
+
+  <div class="card">
+    <h3>&#11014; Bulk upload</h3>
+    <div class="cd">Download the template, fill it in Excel, and upload it back. Accepts .xlsx, .xls and .csv.</div>
+    <div class="btns" style="margin-bottom:12px">
+      <button class="btn g sm" onclick="dlTemplate('before')">&#11015; Download template</button>
+      <button class="btn g sm" onclick="exportSheet('before')">&#128229; Export current list</button>
+    </div>
+    <div class="drop" id="dropBefore">
+      <span class="e">&#128228;</span><b>Click or drop the filled template here</b>
+      <small>Columns must match the template header row exactly</small>
+      <input type="file" id="fileBefore" accept=".xlsx,.xls,.csv" hidden>
+    </div>
+    <div id="beforeUpMsg"></div>
+  </div>
+
+  <div class="card">
+    <h3>&#10133; Add / edit a single course</h3>
+    <div class="cd">A course is identified by Course Code + Date + Session. Saving the same combination updates it.</div>
+    <div class="fr">
+      <div><label class="lb">Sem</label><input class="inp" id="bf_sem" placeholder="V"></div>
+      <div><label class="lb">Course Code *</label><input class="inp" id="bf_code" placeholder="EC2301"></div>
+      <div style="flex:2 1 260px"><label class="lb">Course Name</label><input class="inp" id="bf_name" placeholder="Electromagnetic Fields"></div>
+      <div><label class="lb">Regulation</label><input class="inp" id="bf_reg" placeholder="2021"></div>
+      <div><label class="lb">Regular / Arrear</label>
+        <select class="inp" id="bf_ra"><option value="R">R &ndash; Regular</option><option value="A">A &ndash; Arrear</option><option value="R/A">Both</option></select></div>
+    </div>
+    <div class="fr" style="margin-top:10px">
+      <div><label class="lb">Board *</label><input class="inp" id="bf_board" placeholder="ECE003" list="boardList"></div>
+      <div style="flex:2 1 240px"><label class="lb">Departments</label><input class="inp" id="bf_dept" placeholder="ECE 128, ADS 122"></div>
+      <div><label class="lb">Date *</label><input class="inp" type="date" id="bf_date"></div>
+      <div><label class="lb">Session *</label><select class="inp" id="bf_ses"><option>FN</option><option>AN</option></select></div>
+      <div><label class="lb">Total Students</label><input class="inp" type="number" id="bf_total" min="0" placeholder="0"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="bf_save">&#128190; Save</button></div>
+    </div>
+    <datalist id="boardList"></datalist>
+    <input type="hidden" id="bf_row">
+  </div>
+
+  <div class="card">
+    <h3>&#128203; Course list <span class="pill dim" id="bfCount">0</span></h3>
+    <div class="fr" style="margin-bottom:12px">
+      <div class="srch"><input class="inp" id="bfSearch" placeholder="Search code, name, board, department"></div>
+      <div style="flex:0 1 160px"><select class="inp" id="bfDate"><option value="">All dates</option></select></div>
+      <div style="flex:0 1 120px"><select class="inp" id="bfSes"><option value="">FN + AN</option><option>FN</option><option>AN</option></select></div>
+      <div style="flex:0 0 auto"><button class="btn dg sm" id="bfDel">&#128465; Delete selected</button></div>
+    </div>
+    <div class="tw"><table class="t" id="bfTable"></table></div>
+  </div>
+</section>
+
+<!-- ========================= DURING EXAM ========================= -->
+<section class="view" id="v-during">
+  <div class="head"><div><h2>During Exam &mdash; foilcard &amp; dummy entry</h2>
+    <p>Pick a date and session, then key in QP code, foilcard range (alphanumeric, e.g. TAPR-260619 to TAPR-260625),
+       dummy range and absentees. The tally turns green only when the dummy count matches the present count.</p></div></div>
+
+  <div class="card">
+    <div class="fr">
+      <div><label class="lb">Exam date</label><select class="inp" id="duDate"><option value="">Select date</option></select></div>
+      <div><label class="lb">Session</label><select class="inp" id="duSes"><option value="">Select session</option><option>FN</option><option>AN</option></select></div>
+      <div style="flex:2 1 220px"><label class="lb">&nbsp;</label>
+        <div class="btns">
+          <button class="btn" id="duLoad">&#128269; Load courses</button>
+          <button class="btn ok" id="duSave" disabled>&#128190; Save all entries</button>
+          <button class="btn g sm" id="duAuto">&#9889; Auto-fill dummy chain</button>
+        </div>
+      </div>
+    </div>
+    <div id="duSummary" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <h3>&#9999; Entry grid</h3>
+    <div class="cd">Total Foilcard and Total Dummy are computed as you type (foilcard count uses the numeric tail, the alpha prefix must match).
+      Present = Total students &minus; Absentees. Duplicate dummy ranges are rejected on save.</div>
+    <div class="tw"><table class="t" id="duTable"><tbody><tr><td class="empty">
+      <span class="e">&#128197;</span>Choose a date and session, then press <b>Load courses</b>.</td></tr></tbody></table></div>
+  </div>
+</section>
+
+<!-- ========================= EXAMINERS ========================= -->
+<section class="view" id="v-examiners">
+  <div class="head"><div><h2>Examiner directory</h2>
+    <p>Internal faculty are numbered INT-001 onwards, external examiners EXT-001 onwards. IDs are issued automatically.</p></div></div>
+
+  <div class="tabs">
+    <div class="tab on" data-ex="INTERNAL">Internal examiners</div>
+    <div class="tab" data-ex="EXTERNAL">External examiners</div>
+  </div>
+
+  <div class="card">
+    <h3>&#11014; Upload the directory</h3>
+    <div class="cd" id="exUpHint">Download the template, fill it and upload. IDs are generated by the system &mdash; leave the ID column blank.</div>
+    <div class="btns" style="margin-bottom:12px">
+      <button class="btn g sm" id="exTpl">&#11015; Download template</button>
+      <button class="btn g sm" id="exExport">&#128229; Export list</button>
+      <button class="btn g sm" id="exAddBtn">&#10133; Add one manually</button>
+    </div>
+    <div class="drop" id="dropEx"><span class="e">&#128228;</span><b>Click or drop the filled template here</b>
+      <small>Existing rows are kept; choose Replace in the prompt to overwrite</small>
+      <input type="file" id="fileEx" accept=".xlsx,.xls,.csv" hidden></div>
+    <div id="exUpMsg"></div>
+  </div>
+
+  <div class="card">
+    <h3>&#128101; Directory <span class="pill dim" id="exCount">0</span></h3>
+    <div class="fr" style="margin-bottom:12px">
+      <div class="srch"><input class="inp" id="exSearch" placeholder="Search name, college, department"></div>
+      <div style="flex:0 1 190px"><select class="inp" id="exFilter"><option value="">All departments / boards</option></select></div>
+      <div style="flex:0 0 auto"><button class="btn dg sm" id="exDel">&#128465; Delete selected</button></div>
+    </div>
+    <div class="tw"><table class="t" id="exTable"></table></div>
+  </div>
+</section>
+
+<!-- ========================= GENERATE ========================= -->
+<section class="view" id="v-generate">
+  <div class="head"><div><h2>Generate valuation bundles</h2>
+    <p>Splits every course into bundles of the configured size, assigns a foilcard to each bundle, issues a
+       Board Bundle No. (CSE-001, ECE-001 &hellip;) and works out the dummy range it carries &mdash; then verifies the
+       last bundle against the dummy number you entered.</p></div></div>
+
+  <div class="card">
+    <h3>&#9989; Pre-flight check</h3>
+    <div class="cd">The Generate button unlocks only after the examination is confirmed over.</div>
+    <div id="genCheck"></div>
+    <div class="note w" style="margin-top:12px">
+      <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+        <input type="checkbox" id="examOver" style="margin-top:3px;width:16px;height:16px;accent-color:var(--warn)">
+        <span><b>I confirm the examination is over</b> and all foilcard / dummy entries in the During-Exam sheet are final.
+          Ticking this sets <code>EXAM_OVER = YES</code> in the backend.</span>
+      </label>
+    </div>
+
+    <div class="fr" style="margin-bottom:12px">
+      <div><label class="lb">Generate from date</label><input class="inp" type="date" id="genFrom"></div>
+      <div><label class="lb">To date</label><input class="inp" type="date" id="genTo"></div>
+      <div style="flex:0 0 auto"><button class="btn g sm" id="genAllDates">All dates</button></div>
+      <div style="flex:2 1 240px"><small style="color:var(--dim);line-height:1.5">Pick a start and end date to generate only that range
+        (use the same date in both for a single day). Leave both blank for every date. Bundles on other dates are left untouched.</small></div>
+    </div>
+
+    <div class="btns">
+      <button class="btn wn" id="genBtn" disabled>&#9881; Generate bundle data</button>
+      <button class="btn g" id="genRecheck">&#8635; Re-run verification</button>
+    </div>
+    <div id="genMsg" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h3>&#128230; Generated bundle data <span class="pill dim" id="bdCount">0</span></h3>
+    <div class="fr" style="margin-bottom:12px">
+      <div class="srch"><input class="inp" id="bdSearch" placeholder="Search course, bundle, foilcard"></div>
+      <div style="flex:0 1 180px"><select class="inp" id="bdBoard"><option value="">All boards</option></select></div>
+      <div style="flex:0 0 auto"><button class="btn g sm" onclick="exportSheet('data')">&#128229; Export</button></div>
+    </div>
+    <div class="tw"><table class="t" id="bdTable"></table></div>
+  </div>
+</section>
+
+<!-- ========================= ALLOTMENT ========================= -->
+<section class="view" id="v-allot">
+  <div class="head"><div><h2>Allotment status</h2>
+    <p>What each board chairman has allotted so far. Bundles with no faculty are highlighted.</p></div>
+    <button class="btn g sm" id="alRefresh">&#8635; Refresh</button></div>
+  <div class="grid g4" id="alStats"></div>
+  <div class="card" style="margin-top:16px">
+    <h3>&#128203; Board-wise progress</h3>
+    <div class="tw"><table class="t" id="alTable"></table></div>
+  </div>
+  <div class="card">
+    <h3>&#9888; Unallotted bundles</h3>
+    <div class="tw"><table class="t" id="alPending"></table></div>
+  </div>
+</section>
+
+<!-- ========================= REVALUATION ========================= -->
+<section class="view" id="v-reval">
+  <div class="head"><div><h2>Revaluation &mdash; dummy number locator</h2>
+    <p>After evaluation, type or upload the dummy numbers of the scripts applied for revaluation. Each one is traced to its
+       Board Bundle No., Foilcard No., Course Code and Course Name, and a ready-to-print report can be downloaded.</p></div></div>
+
+  <div class="card">
+    <h3>&#128260; Dummy numbers</h3>
+    <div class="cd">Type them (one per line or comma separated) or upload the Excel / CSV sheet. The column must be named
+      <b>Dummy Number</b>.</div>
+    <div class="btns" style="margin-bottom:12px">
+      <button class="btn g sm" id="rvTplX">&#11015; Excel template</button>
+      <button class="btn g sm" id="rvTplC">&#11015; CSV template</button>
+      <button class="btn g sm" id="rvClear">&#10006; Clear</button>
+    </div>
+    <div class="grid g2">
+      <div><label class="lb">Type dummy numbers</label>
+        <textarea class="inp" id="rvText" rows="6" placeholder="1005&#10;1042&#10;1190"></textarea></div>
+      <div class="drop" id="dropRv"><span class="e">&#128228;</span><b>Upload dummy number sheet</b>
+        <small>.xlsx / .xls / .csv &mdash; column &ldquo;Dummy Number&rdquo;</small>
+        <input type="file" id="fileRv" accept=".xlsx,.xls,.csv" hidden></div>
+    </div>
+    <div id="rvFileMsg" style="margin-top:10px"></div>
+    <div class="btns" style="margin-top:6px">
+      <button class="btn" id="rvGo">&#128269; Look up</button>
+      <button class="btn g" id="rvX">&#128202; Excel</button>
+      <button class="btn g" id="rvP">&#128196; PDF</button>
+      <button class="btn g" id="rvW">&#128462; Word</button>
+    </div>
+    <div class="note i" style="margin-top:12px;margin-bottom:0">The report picks up the logo loaded in the Reports page.</div>
+  </div>
+
+  <div class="card"><h3>Result <span class="pill dim" id="rvCount">0</span></h3>
+    <div id="rvSummary"></div>
+    <div class="tw"><table class="t" id="rvTable"></table></div></div>
+</section>
+
+<!-- ========================= REPORTS ========================= -->
+<section class="view" id="v-reports">
+  <div class="head"><div><h2>Reports</h2>
+    <p>Every form is produced in the exact layout of the office templates. Choose a board, or
+       <b>All</b> to produce every board one after another in a single file.</p></div></div>
+
+  <div class="card">
+    <div class="fr">
+      <div><label class="lb">Board filter</label><select class="inp" id="rpBoard"><option value="ALL">All boards</option></select></div>
+      <div><label class="lb">Valuation date</label><input class="inp" type="date" id="rpDate"></div>
+      <div><label class="lb">Page size</label><select class="inp" id="rpPaper"><option>A4</option><option>A3</option><option>Legal</option></select></div>
+      <div style="flex:0 0 auto"><label class="lb">&nbsp;</label>
+        <button class="btn g" id="rpReload">&#8635; Reload data</button></div>
+    </div>
+    <div id="rpStatus" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h3>&#127942; Report logo</h3>
+    <div class="cd">Upload the logo <b>before</b> downloading. It is placed at the top of every page of every report
+      (PDF, Word and Excel) in place of the college name. PNG or JPG; a transparent PNG looks best. The logo is remembered in this browser.</div>
+    <div class="fr">
+      <div style="flex:1 1 220px"><input class="inp" type="file" id="logoFile" accept="image/png,image/jpeg"></div>
+      <div style="flex:0 0 auto"><div class="logoBox" id="logoBox">No logo</div></div>
+      <div style="flex:0 0 auto"><button class="btn g sm" id="logoClear">Remove logo</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>&#128236; Central Valuation Circular &mdash; stage</h3>
+    <div class="cd"><b>Stage 1 &ndash; before allotment:</b> courses and script counts come from the Data sheet, the external examiners come from the
+      External Examiner list of that board, and the number of internal examiners is entered by hand below.
+      <b>Stage 2 &ndash; after the HoD has allotted faculty:</b> choose stage 2 and generate again; the circular then lists the examiners actually allotted, internal and external.</div>
+    <div class="fr">
+      <div style="flex:0 1 260px"><label class="lb">Circular stage</label>
+        <select class="inp" id="rpStage"><option value="PRE">1 &ndash; Before allotment (manual internal count)</option><option value="POST">2 &ndash; After allotment (from HoD allotment)</option></select></div>
+    </div>
+    <div id="intWrap" style="margin-top:12px"><div class="fr" id="intGrid"></div></div>
+  </div>
+
+  <div class="grid g3" id="repGrid"></div>
+</section>
+
+<!-- ========================= CLAIMS & ANALYSIS ========================= -->
+<section class="view" id="v-claims">
+  <div class="head"><div><h2>Claims &amp; analysis</h2>
+    <p>Valuation, DA, TA and sitting-fee claims of the allotted examiners &mdash; internal, external and combined &mdash; with board-wise and
+       college-wise analysis. Rates come from Settings and the college-wise TA chart.</p></div>
+    <button class="btn g sm" id="clRefresh">&#8635; Refresh</button></div>
+
+  <div class="card">
+    <div class="fr">
+      <div style="flex:0 1 220px"><label class="lb">Board</label><select class="inp" id="clBoard"><option value="ALL">All boards</option></select></div>
+      <div style="flex:2 1 300px"><small style="color:var(--dim);line-height:1.5">The board filter applies to the figures below and to the claim statements. Page size and date are taken from the Reports page.</small></div>
+    </div>
+    <div class="grid g4" style="margin-top:14px">
+      <div class="rep"><div class="ic">&#128100;</div><h4>Internal claim statement</h4><p>Every internal examiner with valuation, DA, TA, sitting fee, TDS and net payable.</p>
+        <div class="fm"><button class="fmt" onclick="claimOut('INT','excel')">&#128202; Excel</button><button class="fmt" onclick="claimOut('INT','pdf')">&#128196; PDF</button><button class="fmt" onclick="claimOut('INT','word')">&#128462; Word</button></div></div>
+      <div class="rep"><div class="ic">&#127891;</div><h4>External claim statement</h4><p>External examiners with college-wise TA from the TA chart.</p>
+        <div class="fm"><button class="fmt" onclick="claimOut('EXT','excel')">&#128202; Excel</button><button class="fmt" onclick="claimOut('EXT','pdf')">&#128196; PDF</button><button class="fmt" onclick="claimOut('EXT','word')">&#128462; Word</button></div></div>
+      <div class="rep"><div class="ic">&#129534;</div><h4>Combined claim statement</h4><p>Internal and external separately with sub-totals, and a consolidated grand total.</p>
+        <div class="fm"><button class="fmt" onclick="claimOut('ALL','excel')">&#128202; Excel</button><button class="fmt" onclick="claimOut('ALL','pdf')">&#128196; PDF</button><button class="fmt" onclick="claimOut('ALL','word')">&#128462; Word</button></div></div>
+      <div class="rep"><div class="ic">&#128202;</div><h4>Board-wise summary</h4><p>Scripts, unallotted bundles, examiners and claim amount for every board.</p>
+        <div class="fm"><button class="fmt" onclick="claimOut('BOARD','excel')">&#128202; Excel</button><button class="fmt" onclick="claimOut('BOARD','pdf')">&#128196; PDF</button><button class="fmt" onclick="claimOut('BOARD','word')">&#128462; Word</button></div></div>
+    </div>
+  </div>
+
+  <div id="clMsg"></div>
+  <div class="grid g4" id="clStats"></div>
+
+  <div class="card" style="margin-top:16px"><h3>&#129534; Claim summary</h3>
+    <div class="cd">Internal, external and combined totals (rupees).</div>
+    <div class="tw"><table class="t" id="clSummary"></table></div></div>
+
+  <div class="card"><h3>&#128202; Board-wise analysis</h3>
+    <div class="tw"><table class="t" id="clBoardTbl"></table></div></div>
+
+  <div class="card"><h3>&#127979; College-wise TA (external examiners)</h3>
+    <div class="cd">Which college each external examiner comes from, and the TA applied from the TA chart.</div>
+    <div class="tw"><table class="t" id="clCollege"></table></div></div>
+
+  <div class="card"><h3>&#128101; Examiner-wise claim</h3>
+    <div class="fr" style="margin-bottom:12px">
+      <div style="flex:0 1 220px"><select class="inp" id="clType"><option value="ALL">Internal + External</option><option value="INT">Internal only</option><option value="EXT">External only</option></select></div>
+    </div>
+    <div class="tw"><table class="t" id="clExam"></table></div></div>
+</section>
+
+<!-- ========================= SETTINGS ========================= -->
+<section class="view" id="v-settings">
+  <div class="head"><div><h2>Settings</h2><p>Values printed on the reports and the rules used by the generator.</p></div></div>
+  <div class="card">
+    <h3>&#9874; Portal configuration</h3>
+    <div class="cd">These are stored in the Config sheet and appear on every generated document.</div>
+    <div id="splitWarn"></div>
+    <div class="grid g2" id="cfgForm"></div>
+    <div class="btns" style="margin-top:16px"><button class="btn" id="cfgSave">&#128190; Save configuration</button></div>
+  </div>
+
+  <div class="card">
+    <h3>&#128663; TA chart &mdash; college-wise travelling allowance <span class="pill dim" id="taCount">0</span></h3>
+    <div class="cd">TA varies with the examiner&rsquo;s college. Each external examiner&rsquo;s college is matched here (College Code first, then College Name, then City)
+      and the amount is used in the Issue Register and every claim statement. A college that is not listed uses the default TA above.
+      The amount is paid per day or per visit, as set in &ldquo;TA is paid&rdquo;.</div>
+    <div class="btns" style="margin-bottom:12px">
+      <button class="btn g sm" id="taTplX">&#11015; Excel template</button>
+      <button class="btn g sm" id="taTplC">&#11015; CSV template</button>
+      <button class="btn g sm" id="taExport">&#128229; Export chart</button>
+      <button class="btn g sm" id="taAdd">&#10133; Add one manually</button>
+      <button class="btn g sm" id="taSync">&#128260; Add colleges of external examiners</button>
+    </div>
+    <div class="drop" id="dropTa"><span class="e">&#128228;</span><b>Click or drop the TA chart here</b>
+      <small>.xlsx / .xls / .csv &mdash; columns: College Code, College Name, College City, Distance (KM), TA Amount, Remarks</small>
+      <input type="file" id="fileTa" accept=".xlsx,.xls,.csv" hidden></div>
+    <div id="taUpMsg"></div>
+    <div class="fr" style="margin:12px 0">
+      <div class="srch"><input class="inp" id="taSearch" placeholder="Search college, city"></div>
+      <div style="flex:0 0 auto"><button class="btn dg sm" id="taDel">&#128465; Delete selected</button></div>
+    </div>
+    <div class="tw"><table class="t" id="taTable"></table></div>
+  </div>
+</section>
+
+<!-- ========================= USERS ========================= -->
+<section class="view" id="v-users">
+  <div class="head"><div><h2>Users</h2><p>Who can sign in, and as which role. HoD accounts are tied to a board.</p></div>
+    <button class="btn sm" id="usrAdd">&#10133; Add user</button></div>
+  <div class="card"><div class="tw"><table class="t" id="usrTable"></table></div></div>
+</section>
+
+<!-- ========================= AUDIT ========================= -->
+<section class="view" id="v-audit">
+  <div class="head"><div><h2>Activity log</h2><p>The last 300 actions recorded by the backend, newest first.</p></div>
+    <button class="btn g sm" id="auRefresh">&#8635; Refresh</button></div>
+  <div class="card"><div class="tw"><table class="t" id="auTable"></table></div></div>
+</section>
+
+</main>
+
+<div id="toasts"></div>
+
+<!-- ========================= GENERIC MODAL ========================= -->
+<div class="ov" id="ov"><div class="mod"><h3 id="mTitle">Title</h3><div class="cd" id="mDesc"></div>
+  <div id="mBody"></div><div class="mrow" id="mBtns"></div></div></div>
+
+<script>
+/* ===================================================================================
+ *  BACKEND URL — paste your Apps Script /exec link here (or configure it on index.html)
+ * =================================================================================== */
+var API_URL = "https://script.google.com/macros/s/AKfycbwoAMI1ZLthpnP2la4AWLgP5jGdyFBjneFfVUsnFaaTqHnU9enUHZiESdGWzBoNqBm60w/exec";
+
+/* =============================== CORE =============================== */
+var LS={url:'ep_api_url',theme:'ep_theme',tok:'ep_token',user:'ep_user',cfg:'ep_config',logo:'ep_logo'};
+function apiUrl(){ return (localStorage.getItem(LS.url)||API_URL||'').trim(); }
+var TOKEN = sessionStorage.getItem(LS.tok) || localStorage.getItem(LS.tok) || '';
+var USER  = JSON.parse(sessionStorage.getItem(LS.user) || localStorage.getItem(LS.user) || 'null');
+var CFG   = {}, BOARDS = [], REPORT = null;
+
+function api(p){
+  p = p || {}; if(!p.token) p.token = TOKEN;
+  var url = apiUrl();
+  if(!url) return Promise.reject(new Error('Backend URL is not configured.'));
+  return fetch(url,{method:'POST',redirect:'follow',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .catch(function(){ return jsonp(url,p); })
+    .then(function(r){
+      if(r && r.ok===false && r.code===401){ bounce(); throw new Error('Session expired.'); }
+      return r;
+    });
+}
+function jsonp(url,payload){
+  return new Promise(function(res,rej){
+    var cb='cb_'+Math.random().toString(36).slice(2), s=document.createElement('script');
+    var to=setTimeout(function(){cl();rej(new Error('Backend did not respond.'));},45000);
+    function cl(){clearTimeout(to);try{delete window[cb];}catch(e){window[cb]=undefined;}if(s.parentNode)s.parentNode.removeChild(s);}
+    window[cb]=function(d){cl();res(d);};
+    s.onerror=function(){cl();rej(new Error('Could not reach the backend.'));};
+    s.src=url+(url.indexOf('?')>-1?'&':'?')+'callback='+cb+'&payload='+encodeURIComponent(JSON.stringify(payload));
+    document.body.appendChild(s);
+  });
+}
+function bounce(){ sessionStorage.clear(); localStorage.removeItem(LS.tok); location.href='index.html'; }
+if(!TOKEN || !USER){ bounce(); }
+else if(USER.role!=='COE'){ location.href='hod.html'; }
+
+/* =============================== UI HELPERS =============================== */
+function toast(msg,kind,title){
+  var d=document.createElement('div'); d.className='toast '+(kind||'');
+  d.innerHTML=(title?'<b>'+esc(title)+'</b>':'')+msg;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){ d.style.transition='all .3s'; d.style.opacity=0; d.style.transform='translateX(30px)';
+    setTimeout(function(){ d.remove(); },300); }, kind==='err'?7000:4200);
+}
+function esc(s){ return String(s===undefined||s===null?'':s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function modal(title,desc,bodyHtml,buttons){
+  document.getElementById('mTitle').textContent=title;
+  document.getElementById('mDesc').innerHTML=desc||'';
+  document.getElementById('mBody').innerHTML=bodyHtml||'';
+  var bw=document.getElementById('mBtns'); bw.innerHTML='';
+  (buttons||[{t:'Close',c:'g'}]).forEach(function(b){
+    var el=document.createElement('button'); el.className='btn '+(b.c||''); el.innerHTML=b.t;
+    el.onclick=function(){ if(!b.fn || b.fn()!==false) closeModal(); };
+    bw.appendChild(el);
+  });
+  document.getElementById('ov').classList.add('on');
+}
+function closeModal(){ document.getElementById('ov').classList.remove('on'); }
+document.getElementById('ov').onclick=function(e){ if(e.target===this) closeModal(); };
+function busy(btn,on,label){
+  if(!btn) return;
+  if(on){ btn.dataset.html=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin2"></span>'+(label||'Working&hellip;'); }
+  else { btn.disabled=false; if(btn.dataset.html) btn.innerHTML=btn.dataset.html; }
+}
+function fmtDate(v){
+  if(!v) return '';
+  var s=String(v).trim();
+  var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[3]+'-'+m[2]+'-'+m[1];
+  var d=new Date(s); if(!isNaN(d.getTime())) return ('0'+d.getDate()).slice(-2)+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+d.getFullYear();
+  return s;
+}
+function toISO(v){
+  if(!v) return '';
+  var s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  var m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+  if(m) return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+  var d=new Date(s); if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+  return s;
+}
+function n(v){ var x=parseInt(String(v===undefined?'':v).replace(/[^0-9-]/g,''),10); return isNaN(x)?0:x; }
+
+/* ---- alphanumeric foilcard helpers : "TAPR-260619" -> prefix "TAPR-", number 260619, width 6 ---- */
+function pf(v){ var m=String(v||'').trim().toUpperCase().replace(/\s+/g,'').match(/^(.*?)(\d+)$/);
+  return m?{p:m[1],n:parseInt(m[2],10),w:m[2].length}:null; }
+function foilCount(a,b){ var x=pf(a),y=pf(b); return (x&&y&&x.p===y.p&&y.n>=x.n)?(y.n-x.n+1):0; }
+function padN(v,w){ var s=String(v); while(s.length<w) s='0'+s; return s; }
+function bb(r){ return r['Board Bundle No.']||r['Bundle No.']||''; }   /* Board Bundle No. with fallback */
+
+/* =============================== THEME / NAV =============================== */
+(function(){ var t=localStorage.getItem(LS.theme)||'dark';
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('themeBtn').innerHTML=t==='dark'?'&#9790;':'&#9728;'; })();
+document.getElementById('themeBtn').onclick=function(){
+  var nx=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',nx);
+  localStorage.setItem(LS.theme,nx); this.innerHTML=nx==='dark'?'&#9790;':'&#9728;'; };
+document.getElementById('burger').onclick=function(){
+  document.getElementById('nav').classList.toggle('open');
+  document.getElementById('scrim').classList.toggle('on'); };
+document.getElementById('scrim').onclick=function(){
+  document.getElementById('nav').classList.remove('open'); this.classList.remove('on'); };
+document.getElementById('logout').onclick=function(){
+  modal('Sign out','End this session and return to the login page?','',
+    [{t:'Cancel',c:'g'},{t:'Sign out',c:'dg',fn:function(){ api({action:'logout'}).catch(function(){}); bounce(); }}]); };
+
+function go(v){
+  document.querySelectorAll('.nv').forEach(function(x){ x.classList.toggle('on',x.dataset.v===v); });
+  document.querySelectorAll('.view').forEach(function(x){ x.classList.toggle('on',x.id==='v-'+v); });
+  document.getElementById('nav').classList.remove('open');
+  document.getElementById('scrim').classList.remove('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(v==='allot') loadAllot();
+  if(v==='audit') loadAudit();
+  if(v==='users') loadUsers();
+  if(v==='claims') loadClaims();
+  if(v==='reports' && !REPORT) loadReportData();
+}
+document.querySelectorAll('.nv').forEach(function(el){ el.onclick=function(){ go(el.dataset.v); }; });
+document.querySelectorAll('[data-go]').forEach(function(el){ el.onclick=function(){ go(el.dataset.go); }; });
+
+/* =============================== BOOT =============================== */
+var BEFORE=[], DURING=[], DATA=[], EXAM={INTERNAL:[],EXTERNAL:[]}, EXTYPE='INTERNAL', TA=[];
+
+function boot(){
+  document.getElementById('uname').textContent=USER.name||'';
+  document.getElementById('urole').textContent='Controller of Examinations';
+  document.getElementById('av').textContent=(USER.name||'C').split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+
+  api({action:'bootstrap'}).then(function(r){
+    if(!r.ok) throw new Error(r.error||'Could not load.');
+    CFG=r.config||{}; BOARDS=r.boards||[];
+    renderStats(r.stats||{});
+    fillBoards();
+    renderConfigForm();
+    renderConfigPeek();
+    buildReportCards();
+    return Promise.all([ api({action:'beforeList'}), api({action:'duringAll'}),
+                         api({action:'dataList',board:'ALL'}),
+                         api({action:'examinerList',type:'INTERNAL'}),
+                         api({action:'examinerList',type:'EXTERNAL'}), api({action:'taList'}) ]);
+  }).then(function(res){
+    BEFORE=(res[0]&&res[0].rows)||[]; DURING=(res[1]&&res[1].rows)||[];
+    DATA=(res[2]&&res[2].rows)||[];
+    EXAM.INTERNAL=(res[3]&&res[3].rows)||[]; EXAM.EXTERNAL=(res[4]&&res[4].rows)||[]; TA=(res[5]&&res[5].rows)||[];
+    afterLoad();
+    loadProgress();
+  }).catch(function(e){ toast(e.message,'err','Load failed'); });
+}
+
+function afterLoad(){
+  document.getElementById('cBefore').textContent=BEFORE.length;
+  document.getElementById('cDuring').textContent=DURING.length;
+  document.getElementById('cExam').textContent=EXAM.INTERNAL.length+EXAM.EXTERNAL.length;
+  document.getElementById('cBundle').textContent=DATA.length;
+  fillBoards(); fillDates(); renderBefore(); renderBundles(); renderExaminers(); renderTA();
+}
+
+function fillBoards(){
+  var set={}; BEFORE.forEach(function(r){ if(r['Board']) set[r['Board']]=1; });
+  (BOARDS||[]).forEach(function(b){ set[b]=1; });
+  EXAM.EXTERNAL.forEach(function(r){ if(r['Board']) set[r['Board']]=1; });
+  BOARDS=Object.keys(set).sort();
+  ['bdBoard','rpBoard','clBoard'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    var sig=BOARDS.join('|');
+    if(el.dataset.sig===sig) return;                       // list unchanged: leave the dropdown alone
+    var cur=el.value, all=(id==='bdBoard')?'':'ALL';
+    el.innerHTML='<option value="'+all+'">All boards</option>'+
+      BOARDS.map(function(b){ return '<option>'+esc(b)+'</option>'; }).join('');
+    el.dataset.sig=sig;
+    el.value=(cur&&BOARDS.indexOf(cur)>-1)?cur:all;
+  });
+  buildIntGrid();
+  document.getElementById('boardList').innerHTML=BOARDS.map(function(b){ return '<option value="'+esc(b)+'">'; }).join('');
+}
+function fillDates(){
+  var set={}; BEFORE.forEach(function(r){ var d=toISO(r['Date']); if(d) set[d]=1; });
+  var ds=Object.keys(set).sort();
+  ['duDate','bfDate'].forEach(function(id){
+    var el=document.getElementById(id); var cur=el.value;
+    el.innerHTML=(id==='bfDate'?'<option value="">All dates</option>':'<option value="">Select date</option>')+
+      ds.map(function(d){ return '<option value="'+d+'">'+fmtDate(d)+'</option>'; }).join('');
+    el.value=cur;
+  });
+}
+
+/* =============================== DASHBOARD =============================== */
+function renderStats(s){
+  var cards=[
+    {k:'Courses scheduled',v:s.courses||0,s:(s.sessions||0)+' exam sessions'},
+    {k:'Entries completed',v:s.entered||0,s:'of '+(s.courses||0)+' courses',p:(s.courses?Math.round(100*s.entered/s.courses):0)},
+    {k:'Students registered',v:(s.students||0).toLocaleString('en-IN'),s:(s.present||0).toLocaleString('en-IN')+' present'},
+    {k:'Bundles generated',v:s.bundles||0,s:(s.allotted||0)+' allotted',p:(s.bundles?Math.round(100*s.allotted/s.bundles):0)},
+    {k:'Internal examiners',v:s.internals||0,s:'INT-001 onwards'},
+    {k:'External examiners',v:s.externals||0,s:'EXT-001 onwards'}
+  ];
+  document.getElementById('statGrid').innerHTML=cards.map(function(c){
+    return '<div class="stat"><div class="k">'+c.k+'</div><div class="v">'+c.v+'</div>'+
+      '<div class="s">'+c.s+'</div>'+(c.p!==undefined?'<div class="bar"><i style="width:'+c.p+'%"></i></div>':'')+'</div>';
+  }).join('');
+}
+function renderConfigPeek(){
+  var keys=['EXAM_TITLE','BUNDLE_SIZE','EXAM_OVER','CIRCULAR_REF'];
+  document.getElementById('cfgPeek').innerHTML=keys.map(function(k){
+    return '<div class="kv"><b>'+k.replace(/_/g,' ')+'</b><span>'+esc(CFG[k]||'—')+'</span></div>'; }).join('');
+}
+function loadProgress(){
+  api({action:'duringProgress'}).then(function(r){
+    if(!r.ok) return;
+    var pct=r.total?Math.round(100*r.complete/r.total):0;
+    var h='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'+
+      '<b style="font-size:24px">'+pct+'%</b><span style="color:var(--dim);font-size:12.5px">'+
+      r.complete+' of '+r.total+' tallied</span></div><div class="bar"><i style="width:'+pct+'%"></i></div>';
+    if(r.pending.length){
+      h+='<div style="margin-top:13px;font-size:12px;color:var(--dim)">Still pending:</div><div style="margin-top:7px;max-height:168px;overflow:auto">';
+      r.pending.slice(0,40).forEach(function(p){
+        h+='<span class="chip">'+esc(p.code)+' &middot; '+fmtDate(p.date)+' '+esc(p.session)+'</span>'; });
+      if(r.pending.length>40) h+='<span class="chip">+'+(r.pending.length-40)+' more</span>';
+      h+='</div>';
+    } else h+='<div class="note s" style="margin-top:12px">Every scheduled course is tallied. You can generate the bundles.</div>';
+    document.getElementById('progBox').innerHTML=h;
+    document.getElementById('examOver').checked=!!r.examOver;
+    renderGenCheck(r);
+  }).catch(function(){});
+}
+document.getElementById('refreshDash').onclick=function(){ busy(this,true); var b=this;
+  api({action:'bootstrap'}).then(function(r){ if(r.ok){ CFG=r.config; renderStats(r.stats||{}); renderConfigPeek(); } })
+  .then(loadProgress).finally(function(){ busy(b,false); }); };
+
+/* =============================== BEFORE EXAM =============================== */
+var BF_COLS=['Sem','Course Code','Course Name','Regulation','Regular/Arrear','Board','Departments','Date','Session','Total Students'];
+
+function renderBefore(){
+  var q=(document.getElementById('bfSearch').value||'').toLowerCase();
+  var fd=document.getElementById('bfDate').value, fs=document.getElementById('bfSes').value;
+  var rows=BEFORE.filter(function(r){
+    if(fd && toISO(r['Date'])!==fd) return false;
+    if(fs && String(r['Session']).toUpperCase()!==fs) return false;
+    if(!q) return true;
+    return (r['Course Code']+' '+r['Course Name']+' '+r['Board']+' '+r['Departments']).toLowerCase().indexOf(q)>-1;
+  });
+  document.getElementById('bfCount').textContent=rows.length+' / '+BEFORE.length;
+  var t=document.getElementById('bfTable');
+  if(!rows.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128230;</span>No courses yet. Upload the template or add one above.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th style="width:34px"><input type="checkbox" id="bfAll"></th><th class="c">#</th>'+
+    BF_COLS.map(function(c){ return '<th>'+c+'</th>'; }).join('')+'<th class="c">Edit</th></tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    h+='<tr><td><input type="checkbox" class="bfChk" data-row="'+r._row+'"></td><td class="c">'+(i+1)+'</td>'+
+      '<td>'+esc(r['Sem'])+'</td><td><b>'+esc(r['Course Code'])+'</b></td><td>'+esc(r['Course Name'])+'</td>'+
+      '<td>'+esc(r['Regulation'])+'</td><td class="c">'+esc(r['Regular/Arrear'])+'</td>'+
+      '<td><span class="pill inf">'+esc(r['Board'])+'</span></td><td style="max-width:220px">'+esc(r['Departments'])+'</td>'+
+      '<td>'+fmtDate(r['Date'])+'</td><td class="c">'+esc(r['Session'])+'</td><td class="n">'+esc(r['Total Students'])+'</td>'+
+      '<td class="c"><button class="btn g sm" onclick="editBefore('+r._row+')">&#9998;</button></td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+  var all=document.getElementById('bfAll');
+  if(all) all.onclick=function(){ document.querySelectorAll('.bfChk').forEach(function(c){ c.checked=all.checked; }); };
+}
+['bfSearch','bfDate','bfSes'].forEach(function(id){ document.getElementById(id).oninput=renderBefore;
+  document.getElementById(id).onchange=renderBefore; });
+
+window.editBefore=function(row){
+  var r=BEFORE.filter(function(x){ return x._row===row; })[0]; if(!r) return;
+  document.getElementById('bf_row').value=row;
+  document.getElementById('bf_sem').value=r['Sem']; document.getElementById('bf_code').value=r['Course Code'];
+  document.getElementById('bf_name').value=r['Course Name']; document.getElementById('bf_reg').value=r['Regulation'];
+  document.getElementById('bf_ra').value=r['Regular/Arrear']||'R'; document.getElementById('bf_board').value=r['Board'];
+  document.getElementById('bf_dept').value=r['Departments']; document.getElementById('bf_date').value=toISO(r['Date']);
+  document.getElementById('bf_ses').value=String(r['Session']).toUpperCase()||'FN';
+  document.getElementById('bf_total').value=r['Total Students'];
+  window.scrollTo({top:document.getElementById('bf_code').getBoundingClientRect().top+window.scrollY-160,behavior:'smooth'});
+  document.getElementById('bf_code').focus();
+};
+document.getElementById('bf_save').onclick=function(){
+  var b=this, row={
+    _row:document.getElementById('bf_row').value||'',
+    sem:document.getElementById('bf_sem').value, code:document.getElementById('bf_code').value,
+    name:document.getElementById('bf_name').value, regulation:document.getElementById('bf_reg').value,
+    ra:document.getElementById('bf_ra').value, board:document.getElementById('bf_board').value,
+    departments:document.getElementById('bf_dept').value, date:document.getElementById('bf_date').value,
+    session:document.getElementById('bf_ses').value, total:document.getElementById('bf_total').value };
+  if(!row.code||!row.date||!row.session){ toast('Course code, date and session are required.','err'); return; }
+  busy(b,true,'Saving');
+  api({action:'beforeSave',row:row}).then(function(r){
+    if(!r.ok) throw new Error(r.error);
+    BEFORE=r.rows||[]; afterLoad(); loadProgress();
+    ['bf_row','bf_code','bf_name','bf_total'].forEach(function(id){ document.getElementById(id).value=''; });
+    toast('Course saved.','ok');
+  }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
+};
+document.getElementById('bfDel').onclick=function(){
+  var rows=[].slice.call(document.querySelectorAll('.bfChk:checked')).map(function(c){ return n(c.dataset.row); });
+  if(!rows.length){ toast('Select at least one row first.','warn'); return; }
+  modal('Delete courses','Remove <b>'+rows.length+'</b> course row(s) from the Before-Exam sheet? This cannot be undone.','',
+   [{t:'Cancel',c:'g'},{t:'Delete',c:'dg',fn:function(){
+      api({action:'beforeDelete',rowsIndex:rows}).then(function(r){
+        if(!r.ok) throw new Error(r.error);
+        BEFORE=r.rows||[]; afterLoad(); toast(rows.length+' row(s) deleted.','ok');
+      }).catch(function(e){ toast(e.message,'err'); }); }}]);
+};
+
+/* ---------- file upload engine ---------- */
+function wireDrop(dropId,fileId,handler){
+  var d=document.getElementById(dropId), f=document.getElementById(fileId);
+  d.onclick=function(){ f.click(); };
+  d.ondragover=function(e){ e.preventDefault(); d.classList.add('hot'); };
+  d.ondragleave=function(){ d.classList.remove('hot'); };
+  d.ondrop=function(e){ e.preventDefault(); d.classList.remove('hot');
+    if(e.dataTransfer.files[0]) handler(e.dataTransfer.files[0]); };
+  f.onchange=function(){ if(f.files[0]) handler(f.files[0]); f.value=''; };
+}
+function parseFile(file){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onload=function(e){
+      try{
+        var wb=XLSX.read(e.target.result,{type:'array',cellDates:true,raw:false});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        res(XLSX.utils.sheet_to_json(ws,{defval:'',raw:false}));
+      }catch(err){ rej(new Error('Could not read that file: '+err.message)); }
+    };
+    fr.onerror=function(){ rej(new Error('Could not read that file.')); };
+    fr.readAsArrayBuffer(file);
+  });
+}
+wireDrop('dropBefore','fileBefore',function(file){
+  var box=document.getElementById('beforeUpMsg');
+  box.innerHTML='<div class="note i">Reading <b>'+esc(file.name)+'</b>&hellip;</div>';
+  parseFile(file).then(function(rows){
+    if(!rows.length) throw new Error('The sheet has no data rows.');
+    box.innerHTML='<div class="note i">Found <b>'+rows.length+'</b> rows. Choose how to load them.</div>';
+    modal('Upload '+rows.length+' course rows','Append keeps the existing list and skips duplicates (same code + date + session). Replace clears the sheet first.','',
+      [{t:'Cancel',c:'g'},
+       {t:'Replace all',c:'dg',fn:function(){ sendBefore(rows,'replace',box); }},
+       {t:'Append',c:'',fn:function(){ sendBefore(rows,'append',box); }}]);
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+});
+function sendBefore(rows,mode,box){
+  box.innerHTML='<div class="note i"><span class="spin2"></span> Uploading&hellip;</div>';
+  api({action:'beforeBulk',rows:rows,mode:mode}).then(function(r){
+    if(!r.ok) throw new Error(r.error||'Upload failed.');
+    BEFORE=r.rows||[]; afterLoad(); loadProgress();
+    var h='<div class="note s"><b>'+r.inserted+'</b> rows processed ('+mode+').';
+    if(r.errors&&r.errors.length) h+='<ul>'+r.errors.slice(0,10).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>';
+    box.innerHTML=h+'</div>'; toast('Course list updated.','ok');
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+}
+
+/* ---------- templates / exports ---------- */
+function csvDownload(name,rows){
+  var csv=rows.map(function(r){ return r.map(function(c){
+    c=String(c===undefined||c===null?'':c);
+    return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(','); }).join('\r\n');
+  var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  saveAs(blob,name);
+}
+function xlsxDownload(name,rows,widths){
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  if(widths) ws['!cols']=widths.map(function(w){ return {wch:w}; });
+  var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+  var out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  saveAs(new Blob([out],{type:'application/octet-stream'}),name);
+}
+function dlTemplate(kind){
+  if(kind==='before'){
+    csvDownload('Template_BeforeExam.csv',[BF_COLS,
+      ['V','EC2301','Electromagnetic Fields and Transmission Lines','2021','R','ECE003','ECE','2026-11-18','FN','111'],
+      ['III','CS2201','Data Structures using Python','2021','R','CSE005','CSE','2026-11-18','FN','187']]);
+  } else if(kind==='INTERNAL'){
+    csvDownload('Template_InternalExaminers.csv',
+      [['Name of the Faculty','Department','Designation','Year of Experience','Mobile','Mail ID'],
+       ['Dr. A. Kumar','ECE','Associate Professor','12','9876543210','a.kumar@kcet.edu']]);
+  } else {
+    csvDownload('Template_ExternalExaminers.csv',
+      [['Name of the Faculty','Designation','Department','Board','College Code','College Name','College City','Mobile Number','Mail ID','Total Year of Experience'],
+       ['Dr. S. Raj','Professor','ECE','ECE003','1234','PSNA College of Engineering','Dindigul','9876501234','s.raj@psna.edu','18']]);
+  }
+  toast('Template downloaded.','ok');
+}
+function exportSheet(which){
+  var rows,name;
+  if(which==='before'){ name='BeforeExam.csv'; rows=[BF_COLS].concat(BEFORE.map(function(r){ return BF_COLS.map(function(c){ return r[c]; }); })); }
+  else if(which==='data'){ var C=['S.No.','Course Code','Course Name','Board','Sem','Date','Session','Bundle No.','Board Bundle No.','Foilcard No.','Dummy No. From','Dummy No. To','No. of Papers','Alloted Faculty ID','Faculty Name','Faculty Type'];
+    name='BundleData.csv'; rows=[C].concat(DATA.map(function(r){ return C.map(function(c){ return r[c]; }); })); }
+  else { var list=EXAM[which]; var C2=Object.keys(list[0]||{}).filter(function(k){ return k!=='_row'; });
+    name=which+'_Examiners.csv'; rows=[C2].concat(list.map(function(r){ return C2.map(function(c){ return r[c]; }); })); }
+  csvDownload(name,rows); toast('Exported.','ok');
+}
+
+/* =============================== DURING EXAM =============================== */
+var DU_ROWS=[];
+document.getElementById('duLoad').onclick=function(){
+  var d=document.getElementById('duDate').value, s=document.getElementById('duSes').value;
+  if(!d||!s){ toast('Pick both a date and a session.','warn'); return; }
+  var b=this; busy(b,true,'Loading');
+  api({action:'duringList',date:d,session:s}).then(function(r){
+    if(!r.ok) throw new Error(r.error);
+    DU_ROWS=r.rows||[]; renderDuring();
+    document.getElementById('duSave').disabled=!DU_ROWS.length;
+    if(!DU_ROWS.length) toast('No courses scheduled for that date and session.','warn');
+  }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
+};
+
+function renderDuring(){
+  var t=document.getElementById('duTable');
+  if(!DU_ROWS.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128197;</span>No courses for this date and session.</td></tr></tbody>'; return; }
+  var h='<thead><tr>'+
+    '<th class="c">#</th><th>Sem</th><th>Course</th><th>Board</th><th>Dept.</th>'+
+    '<th class="n">Total</th><th>QP Code</th>'+
+    '<th>Foil From</th><th>Foil To</th><th class="n">Tot. Foil</th>'+
+    '<th class="n">Dummy From</th><th class="n">Dummy To</th><th class="n">Tot. Dummy</th>'+
+    '<th class="n">Absent</th><th class="n">Present</th><th class="c">Tally</th></tr></thead><tbody>';
+  DU_ROWS.forEach(function(r,i){
+    h+='<tr data-i="'+i+'">'+
+      '<td class="c">'+(i+1)+'</td><td>'+esc(r.sem)+'</td>'+
+      '<td style="min-width:200px"><b>'+esc(r.code)+'</b><div style="font-size:11px;color:var(--faint)">'+esc(r.name)+'</div></td>'+
+      '<td><span class="pill inf">'+esc(r.board)+'</span></td>'+
+      '<td style="max-width:150px;font-size:11.5px;color:var(--dim)">'+esc(r.departments)+'</td>'+
+      '<td class="n"><b>'+r.total+'</b></td>'+
+      '<td><input class="cell" data-f="qp" value="'+esc(r.qp)+'" placeholder="QP"></td>'+
+      '<td><input class="cell foil" data-f="foilFrom" value="'+esc(r.foilFrom)+'" placeholder="TAPR-260619"></td>'+
+      '<td><input class="cell foil" data-f="foilTo" value="'+esc(r.foilTo)+'" placeholder="TAPR-260625"></td>'+
+      '<td class="n" data-o="totFoil">&mdash;</td>'+
+      '<td><input class="cell" data-f="dummyFrom" type="number" value="'+esc(r.dummyFrom)+'"></td>'+
+      '<td><input class="cell" data-f="dummyTo" type="number" value="'+esc(r.dummyTo)+'"></td>'+
+      '<td class="n" data-o="totDummy">&mdash;</td>'+
+      '<td><input class="cell" data-f="absent" type="number" min="0" max="'+r.total+'" value="'+esc(r.absent)+'"></td>'+
+      '<td class="n" data-o="present">&mdash;</td>'+
+      '<td class="c" data-o="tally"><span class="pill dim">pending</span></td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+  t.querySelectorAll('input.cell').forEach(function(inp){
+    inp.oninput=function(){ var tr=inp.closest('tr'); DU_ROWS[n(tr.dataset.i)][inp.dataset.f]=inp.value; calcRow(tr); };
+  });
+  [].slice.call(t.querySelectorAll('tbody tr')).forEach(calcRow);
+  duSummary();
+}
+function calcRow(tr){
+  var i=n(tr.dataset.i), r=DU_ROWS[i];
+  var tf=foilCount(r.foilFrom,r.foilTo);
+  var hasFoil=String(r.foilFrom||'').trim()||String(r.foilTo||'').trim();
+  var td=(n(r.dummyFrom)&&n(r.dummyTo))?(n(r.dummyTo)-n(r.dummyFrom)+1):0;
+  var hasAbs=String(r.absent).trim()!=='';
+  var pres=hasAbs?(r.total-n(r.absent)):'';
+  r.present=pres;
+  tr.querySelector('[data-o="totFoil"]').innerHTML=tf>0?'<b>'+tf+'</b>':(hasFoil?'<span class="pill err">bad</span>':'&mdash;');
+  tr.querySelector('[data-o="totDummy"]').innerHTML=td>0?'<b>'+td+'</b>':(n(r.dummyFrom)||n(r.dummyTo)?'<span class="pill err">bad</span>':'&mdash;');
+  tr.querySelector('[data-o="present"]').innerHTML=hasAbs?'<b>'+pres+'</b>':'&mdash;';
+  var cell=tr.querySelector('[data-o="tally"]'), dIn=tr.querySelector('[data-f="dummyTo"]');
+  var st;
+  if(!hasAbs||!td){ st='<span class="pill dim">pending</span>'; dIn.classList.remove('bad','good'); r.tally='PENDING'; }
+  else if(td===pres){ st='<span class="pill ok">&#10003; correct</span>'; dIn.classList.add('good'); dIn.classList.remove('bad'); r.tally='CORRECT'; }
+  else { st='<span class="pill err">off by '+(td-pres)+'</span>'; dIn.classList.add('bad'); dIn.classList.remove('good'); r.tally='MISMATCH'; }
+  cell.innerHTML=st;
+  duSummary();
+}
+function duSummary(){
+  if(!DU_ROWS.length){ document.getElementById('duSummary').innerHTML=''; return; }
+  var ok=DU_ROWS.filter(function(r){ return r.tally==='CORRECT'; }).length;
+  var bad=DU_ROWS.filter(function(r){ return r.tally==='MISMATCH'; }).length;
+  var tot=DU_ROWS.reduce(function(a,r){ return a+r.total; },0);
+  var pre=DU_ROWS.reduce(function(a,r){ return a+(n(r.present)||0); },0);
+  var cls=bad?'e':(ok===DU_ROWS.length?'s':'i');
+  document.getElementById('duSummary').innerHTML='<div class="note '+cls+'">'+
+    '<b>'+DU_ROWS.length+'</b> courses &middot; <b>'+tot+'</b> registered &middot; <b>'+pre+'</b> present &middot; '+
+    '<b>'+ok+'</b> tallied'+(bad?' &middot; <b>'+bad+'</b> mismatched':'')+'</div>';
+}
+document.getElementById('duAuto').onclick=function(){
+  if(!DU_ROWS.length){ toast('Load a session first.','warn'); return; }
+  var start=prompt('Start the dummy chain from which number?','1001');
+  if(start===null) return;
+  var cur=n(start);
+  var fstart=prompt('Start foilcard numbering from? (e.g. TAPR-260619)','TAPR-260619');
+  if(fstart===null) return;
+  var fs=pf(fstart); if(!fs){ toast('Foilcard must end with digits, e.g. TAPR-260619.','err'); return; }
+  var fcur=fs.n, size=n(CFG.BUNDLE_SIZE||30)||30;
+  DU_ROWS.forEach(function(r){
+    if(String(r.absent).trim()===''){ return; }
+    var pres=r.total-n(r.absent); if(pres<=0) return;
+    r.dummyFrom=cur; r.dummyTo=cur+pres-1; cur=r.dummyTo+1;
+    var nb=Math.ceil(pres/size);
+    r.foilFrom=fs.p+padN(fcur,fs.w); r.foilTo=fs.p+padN(fcur+nb-1,fs.w); fcur+=nb;
+  });
+  renderDuring();
+  toast('Dummy and foilcard chains filled. Review before saving.','ok');
+};
+document.getElementById('duSave').onclick=function(){
+  var b=this;
+  var payload=DU_ROWS.filter(function(r){ return String(r.absent).trim()!==''; }).map(function(r){
+    return {code:r.code,date:r.date,session:r.session,qp:r.qp,foilFrom:r.foilFrom,foilTo:r.foilTo,
+            dummyFrom:r.dummyFrom,dummyTo:r.dummyTo,absent:r.absent};
+  });
+  if(!payload.length){ toast('Enter the absentee count for at least one course.','warn'); return; }
+  busy(b,true,'Saving');
+  api({action:'duringSave',rows:payload}).then(function(r){
+    if(!r.ok){
+      modal('Save rejected','The backend refused these rows:',
+        '<div class="note e"><ul>'+(r.errors||[r.error]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>');
+      return;
+    }
+    toast(r.saved+' course(s) saved.','ok');
+    if(r.errors&&r.errors.length){
+      modal('Partly saved',r.saved+' row(s) stored. These were skipped:',
+        '<div class="note w"><ul>'+r.errors.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>');
+    }
+    return api({action:'duringAll'}).then(function(d){ DURING=(d&&d.rows)||[]; afterLoad(); loadProgress(); });
+  }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
+};
+
+/* =============================== EXAMINERS =============================== */
+document.querySelectorAll('[data-ex]').forEach(function(el){
+  el.onclick=function(){
+    document.querySelectorAll('[data-ex]').forEach(function(x){ x.classList.remove('on'); });
+    el.classList.add('on'); EXTYPE=el.dataset.ex; document.getElementById('exFilter').value=''; renderExaminers();
+  };
+});
+function renderExaminers(){
+  var list=EXAM[EXTYPE]||[], isExt=EXTYPE==='EXTERNAL';
+  var q=(document.getElementById('exSearch').value||'').toLowerCase();
+  var fv=document.getElementById('exFilter').value;
+  var set={}; list.forEach(function(r){ var k=isExt?r['Board']:r['Department']; if(k) set[k]=1; });
+  var sel=document.getElementById('exFilter'), keys=Object.keys(set).sort(), sig=EXTYPE+'|'+keys.join('~');
+  if(sel.dataset.sig!==sig){                                // rebuild only when the list really changed
+    sel.innerHTML='<option value="">All '+(isExt?'boards':'departments')+'</option>'+
+      keys.map(function(k){ return '<option>'+esc(k)+'</option>'; }).join('');
+    sel.dataset.sig=sig;
+    if(keys.indexOf(fv)<0) fv='';
+    sel.value=fv;
+  }
+  var rows=list.filter(function(r){
+    if(fv && String(isExt?r['Board']:r['Department'])!==fv) return false;
+    if(!q) return true;
+    return Object.keys(r).map(function(k){ return r[k]; }).join(' ').toLowerCase().indexOf(q)>-1;
+  });
+  document.getElementById('exCount').textContent=rows.length+' / '+list.length;
+  document.getElementById('exUpHint').innerHTML=isExt
+    ? 'External examiners carry board, college and contact details. IDs EXT-001 onwards are issued automatically.'
+    : 'Internal faculty are listed department-wise. IDs INT-001 onwards are issued automatically.';
+  var cols=isExt
+    ?['ID','Name of the Faculty','Designation','Department','Board','College Code','College Name','College City','Mobile Number','Mail ID','Total Year of Experience']
+    :['ID','Name of the Faculty','Department','Designation','Year of Experience','Mobile','Mail ID'];
+  var t=document.getElementById('exTable');
+  if(!rows.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128101;</span>No examiners in this list yet.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th style="width:34px"><input type="checkbox" id="exAll"></th>'+
+    cols.map(function(c){ return '<th>'+c+'</th>'; }).join('')+'<th class="c">Edit</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    h+='<tr><td><input type="checkbox" class="exChk" data-row="'+r._row+'"></td>'+
+      cols.map(function(c){
+        if(c==='ID') return '<td><span class="pill inf">'+esc(r[c])+'</span></td>';
+        if(c==='Mobile Number'||c==='Mobile') return '<td>'+(r[c]?'<a href="tel:'+esc(r[c])+'" style="color:var(--a1)">'+esc(r[c])+'</a>':'')+'</td>';
+        return '<td>'+esc(r[c])+'</td>';
+      }).join('')+
+      '<td class="c"><button class="btn g sm" onclick="editEx('+r._row+')">&#9998;</button></td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+  var all=document.getElementById('exAll');
+  if(all) all.onclick=function(){ document.querySelectorAll('.exChk').forEach(function(c){ c.checked=all.checked; }); };
+}
+document.getElementById('exSearch').oninput=renderExaminers;
+document.getElementById('exFilter').onchange=renderExaminers;
+document.getElementById('exTpl').onclick=function(){ dlTemplate(EXTYPE); };
+document.getElementById('exExport').onclick=function(){ exportSheet(EXTYPE); };
+
+function exFormHtml(r){
+  r=r||{};
+  var f=function(lb,id,val,ph){ return '<div style="flex:1 1 170px"><label class="lb">'+lb+'</label>'+
+    '<input class="inp" id="ex_'+id+'" value="'+esc(val||'')+'" placeholder="'+esc(ph||'')+'"></div>'; };
+  if(EXTYPE==='EXTERNAL'){
+    return '<div class="fr">'+f('Name *','name',r['Name of the Faculty'])+f('Designation','designation',r['Designation'])+
+      f('Department','department',r['Department'])+f('Board','board',r['Board'])+'</div><div class="fr" style="margin-top:10px">'+
+      f('College Code','collegeCode',r['College Code'])+f('College Name','collegeName',r['College Name'])+
+      f('College City','collegeCity',r['College City'])+'</div><div class="fr" style="margin-top:10px">'+
+      f('Mobile','mobile',r['Mobile Number'])+f('Mail ID','mail',r['Mail ID'])+f('Experience (yrs)','exp',r['Total Year of Experience'])+'</div>';
+  }
+  return '<div class="fr">'+f('Name *','name',r['Name of the Faculty'])+f('Department','department',r['Department'])+'</div>'+
+    '<div class="fr" style="margin-top:10px">'+f('Designation','designation',r['Designation'])+
+    f('Experience (yrs)','exp',r['Year of Experience'])+'</div><div class="fr" style="margin-top:10px">'+
+    f('Mobile','mobile',r['Mobile'])+f('Mail ID','mail',r['Mail ID'])+'</div>';
+}
+function saveEx(_row){
+  var get=function(id){ var e=document.getElementById('ex_'+id); return e?e.value:''; };
+  var row={_row:_row||'',name:get('name'),designation:get('designation'),department:get('department'),
+    board:get('board'),collegeCode:get('collegeCode'),collegeName:get('collegeName'),collegeCity:get('collegeCity'),
+    mobile:get('mobile'),mail:get('mail'),exp:get('exp')};
+  if(!row.name.trim()){ toast('Faculty name is required.','err'); return false; }
+  api({action:'examinerSave',type:EXTYPE,row:row}).then(function(r){
+    if(!r.ok) throw new Error(r.error);
+    EXAM[EXTYPE]=r.rows||[]; afterLoad(); toast('Examiner saved.','ok');
+  }).catch(function(e){ toast(e.message,'err'); });
+}
+document.getElementById('exAddBtn').onclick=function(){
+  modal('Add '+(EXTYPE==='EXTERNAL'?'external':'internal')+' examiner',
+    'The ID is issued automatically on save.',exFormHtml(null),
+    [{t:'Cancel',c:'g'},{t:'Save',c:'',fn:function(){ return saveEx(''); }}]);
+};
+window.editEx=function(row){
+  var r=(EXAM[EXTYPE]||[]).filter(function(x){ return x._row===row; })[0]; if(!r) return;
+  modal('Edit '+esc(r['ID']),'',exFormHtml(r),
+    [{t:'Cancel',c:'g'},{t:'Save',c:'',fn:function(){ return saveEx(row); }}]);
+};
+document.getElementById('exDel').onclick=function(){
+  var rows=[].slice.call(document.querySelectorAll('.exChk:checked')).map(function(c){ return n(c.dataset.row); });
+  if(!rows.length){ toast('Select at least one examiner.','warn'); return; }
+  modal('Delete examiners','Remove <b>'+rows.length+'</b> examiner(s)?','',
+    [{t:'Cancel',c:'g'},{t:'Delete',c:'dg',fn:function(){
+      api({action:'examinerDelete',type:EXTYPE,rowsIndex:rows}).then(function(r){
+        if(!r.ok) throw new Error(r.error);
+        EXAM[EXTYPE]=r.rows||[]; afterLoad(); toast('Deleted.','ok');
+      }).catch(function(e){ toast(e.message,'err'); }); }}]);
+};
+wireDrop('dropEx','fileEx',function(file){
+  var box=document.getElementById('exUpMsg');
+  box.innerHTML='<div class="note i">Reading <b>'+esc(file.name)+'</b>&hellip;</div>';
+  parseFile(file).then(function(rows){
+    if(!rows.length) throw new Error('The sheet has no data rows.');
+    modal('Upload '+rows.length+' examiners','Append adds to the current list. Replace clears it first. IDs are re-issued in order.','',
+      [{t:'Cancel',c:'g'},
+       {t:'Replace all',c:'dg',fn:function(){ sendEx(rows,'replace',box); }},
+       {t:'Append',c:'',fn:function(){ sendEx(rows,'append',box); }}]);
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+});
+function sendEx(rows,mode,box){
+  box.innerHTML='<div class="note i"><span class="spin2"></span> Uploading&hellip;</div>';
+  api({action:'examinerBulk',type:EXTYPE,rows:rows,mode:mode}).then(function(r){
+    if(!r.ok) throw new Error(r.error||'Upload failed.');
+    EXAM[EXTYPE]=r.rows||[]; afterLoad();
+    box.innerHTML='<div class="note s"><b>'+r.inserted+'</b> examiners loaded.</div>';
+    toast('Examiner directory updated.','ok');
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+}
+
+/* =============================== GENERATE =============================== */
+function renderGenCheck(p){
+  var size=n(CFG.BUNDLE_SIZE||30)||30;
+  var tallied=DURING.filter(function(r){ return String(r['Tally Status']).toUpperCase()==='CORRECT'; }).length;
+  var mism=DURING.filter(function(r){ return String(r['Tally Status']).toUpperCase()==='MISMATCH'; }).length;
+  var papers=DURING.reduce(function(a,r){ return a+n(r['Present']); },0);
+  var est=DURING.reduce(function(a,r){ return a+Math.ceil(n(r['Present'])/size); },0);
+  var h='<div class="grid g4">'+
+    stat('Courses entered',DURING.length,'of '+BEFORE.length+' scheduled')+
+    stat('Tally correct',tallied,mism?(mism+' mismatched'):'no mismatches')+
+    stat('Answer scripts',papers.toLocaleString('en-IN'),'present count')+
+    stat('Bundles expected',est,size+' scripts per bundle')+'</div>';
+  if(mism) h+='<div class="note e" style="margin-top:12px"><b>'+mism+'</b> course(s) have a dummy / present mismatch. Fix them in the During-Exam view first.</div>';
+  else if(DURING.length<BEFORE.length) h+='<div class="note w" style="margin-top:12px"><b>'+(BEFORE.length-DURING.length)+'</b> scheduled course(s) have no entry yet. Generating now covers only the entered ones.</div>';
+  else h+='<div class="note s" style="margin-top:12px">All scheduled courses are entered and tallied.</div>';
+  document.getElementById('genCheck').innerHTML=h;
+  document.getElementById('genBtn').disabled=!(p&&p.examOver);
+}
+function stat(k,v,s){ return '<div class="stat"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>'; }
+
+document.getElementById('examOver').onchange=function(){
+  var on=this.checked, me=this;
+  api({action:'saveConfig',config:{EXAM_OVER:on?'YES':'NO'}}).then(function(r){
+    if(!r.ok) throw new Error(r.error);
+    CFG=r.config; renderConfigPeek(); renderConfigForm();
+    document.getElementById('genBtn').disabled=!on;
+    toast(on?'Generation unlocked.':'Generation locked again.',on?'ok':'warn');
+  }).catch(function(e){ me.checked=!on; toast(e.message,'err'); });
+};
+document.getElementById('genRecheck').onclick=function(){ loadProgress(); toast('Verification re-run.','ok'); };
+document.getElementById('genAllDates').onclick=function(){ document.getElementById('genFrom').value=''; document.getElementById('genTo').value=''; };
+document.getElementById('genFrom').onchange=function(){
+  var t=document.getElementById('genTo'); if(this.value && !t.value) t.value=this.value; };
+document.getElementById('genBtn').onclick=function(){
+  var f=document.getElementById('genFrom').value, t=document.getElementById('genTo').value;
+  if(f && t && f>t){ toast('The "From" date is after the "To" date.','err'); return; }
+  var scope=(!f&&!t)?'<b>every date</b>':('<b>'+fmtDate(f||t)+'</b> to <b>'+fmtDate(t||f)+'</b>');
+  modal('Generate bundles','Bundles will be generated for '+scope+'. Existing bundles in that range are rebuilt (their allotments and Board Bundle numbers are kept); other dates are not touched.','',
+    [{t:'Cancel',c:'g'},{t:'Generate',c:'wn',fn:function(){ runGenerate(false); }}]);
+};
+
+function runGenerate(force){
+  var b=document.getElementById('genBtn'); busy(b,true,'Generating');
+  api({action:'generateBundles',force:force,preserve:true,
+       from:document.getElementById('genFrom').value,to:document.getElementById('genTo').value}).then(function(r){
+    var box=document.getElementById('genMsg');
+    if(!r.ok){
+      box.innerHTML='<div class="note e"><b>'+esc(r.error)+'</b><ul>'+
+        (r.errors||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>';
+      if(r.errors&&r.errors.length)
+        modal('Verification failed','These courses did not pass the dummy-number verification. You can fix them, or generate anyway and correct later.',
+          '<div class="note e"><ul>'+(r.errors||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>',
+          [{t:'Fix them first',c:'g'},{t:'Generate anyway',c:'wn',fn:function(){ runGenerate(true); }}]);
+      return;
+    }
+    DATA=r.rows||[]; afterLoad();
+    var h='<div class="note s"><b>'+r.generated+'</b> bundles generated and written to the Data sheet.</div>';
+    if(r.warnings&&r.warnings.length) h+='<div class="note w"><b>Warnings</b><ul>'+
+      r.warnings.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>';
+    box.innerHTML=h;
+    toast(r.generated+' bundles ready for allotment.','ok');
+    REPORT=null;
+  }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
+}
+function renderBundles(){
+  document.getElementById('bdCount').textContent=DATA.length;
+  var q=(document.getElementById('bdSearch').value||'').toLowerCase();
+  var bd=document.getElementById('bdBoard').value;
+  var rows=DATA.filter(function(r){
+    if(bd && r['Board']!==bd) return false;
+    if(!q) return true;
+    return (r['Course Code']+' '+r['Course Name']+' '+r['Bundle No.']+' '+r['Board Bundle No.']+' '+r['Foilcard No.']).toLowerCase().indexOf(q)>-1;
+  });
+  var t=document.getElementById('bdTable');
+  if(!rows.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128230;</span>No bundles yet. Run the generator above.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th class="c">#</th><th>Course</th><th>Board</th><th>Date</th><th class="c">Bundle</th><th class="c">Board Bundle</th><th>Foilcard</th>'+
+    '<th class="n">Dummy From</th><th class="n">Dummy To</th><th class="n">Papers</th><th>Faculty</th><th class="c">Type</th></tr></thead><tbody>';
+  rows.slice(0,800).forEach(function(r,i){
+    h+='<tr><td class="c">'+esc(r['S.No.'])+'</td>'+
+      '<td style="min-width:190px"><b>'+esc(r['Course Code'])+'</b><div style="font-size:11px;color:var(--faint)">'+esc(r['Course Name'])+'</div></td>'+
+      '<td><span class="pill inf">'+esc(r['Board'])+'</span></td><td>'+fmtDate(r['Date'])+' '+esc(r['Session'])+'</td>'+
+      '<td class="c">'+esc(r['Bundle No.'])+'</td><td class="c"><b>'+esc(r['Board Bundle No.'])+'</b></td>'+
+      '<td>'+esc(r['Foilcard No.'])+'</td><td class="n">'+esc(r['Dummy No. From'])+'</td>'+
+      '<td class="n">'+esc(r['Dummy No. To'])+'</td><td class="n"><b>'+esc(r['No. of Papers'])+'</b></td>'+
+      '<td>'+(r['Alloted Faculty ID']?esc(r['Alloted Faculty ID'])+' &middot; '+esc(r['Faculty Name']):'<span class="pill warn">unallotted</span>')+'</td>'+
+      '<td class="c">'+(r['Faculty Type']?'<span class="pill dim">'+esc(r['Faculty Type'])+'</span>':'')+'</td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+  if(rows.length>800) toast('Showing the first 800 of '+rows.length+' bundles. Use the filters to narrow it down.','warn');
+}
+['bdSearch','bdBoard'].forEach(function(id){ document.getElementById(id).oninput=renderBundles;
+  document.getElementById(id).onchange=renderBundles; });
+
+/* =============================== ALLOTMENT STATUS =============================== */
+function loadAllot(){
+  api({action:'dataList',board:'ALL'}).then(function(r){
+    if(!r.ok) return; DATA=r.rows||[];
+    var byBoard={};
+    DATA.forEach(function(x){
+      var b=x['Board']||'(none)';
+      if(!byBoard[b]) byBoard[b]={board:b,bundles:0,papers:0,assigned:0,courses:{},int:0,ext:0};
+      var o=byBoard[b]; o.bundles++; o.papers+=n(x['No. of Papers']); o.courses[x['Course Code']]=1;
+      if(String(x['Alloted Faculty ID']).trim()){ o.assigned++;
+        if(String(x['Faculty Type']).toUpperCase()==='EXTERNAL') o.ext++; else o.int++; }
+    });
+    var list=Object.keys(byBoard).sort().map(function(k){ return byBoard[k]; });
+    var tot={bundles:DATA.length,papers:DATA.reduce(function(a,x){return a+n(x['No. of Papers']);},0),
+             assigned:DATA.filter(function(x){return String(x['Alloted Faculty ID']).trim();}).length};
+    document.getElementById('alStats').innerHTML=
+      stat('Boards',list.length,'with generated bundles')+
+      stat('Bundles',tot.bundles,tot.assigned+' allotted')+
+      stat('Answer scripts',tot.papers.toLocaleString('en-IN'),'across all boards')+
+      stat('Completion',(tot.bundles?Math.round(100*tot.assigned/tot.bundles):0)+'%','allotment progress');
+    var h='<thead><tr><th>Board</th><th class="n">Courses</th><th class="n">Bundles</th><th class="n">Papers</th>'+
+      '<th class="n">Allotted</th><th class="n">Internal</th><th class="n">External</th><th style="min-width:130px">Progress</th></tr></thead><tbody>';
+    list.forEach(function(o){
+      var p=o.bundles?Math.round(100*o.assigned/o.bundles):0;
+      h+='<tr><td><span class="pill inf">'+esc(o.board)+'</span></td><td class="n">'+Object.keys(o.courses).length+'</td>'+
+        '<td class="n">'+o.bundles+'</td><td class="n">'+o.papers+'</td><td class="n">'+o.assigned+'</td>'+
+        '<td class="n">'+o.int+'</td><td class="n">'+o.ext+'</td>'+
+        '<td><div class="bar"><i style="width:'+p+'%"></i></div><small style="color:var(--faint)">'+p+'%</small></td></tr>';
+    });
+    document.getElementById('alTable').innerHTML=list.length?h+'</tbody>'
+      :'<tbody><tr><td class="empty"><span class="e">&#128203;</span>Nothing generated yet.</td></tr></tbody>';
+
+    var pend=DATA.filter(function(x){ return !String(x['Alloted Faculty ID']).trim(); });
+    var ph='<thead><tr><th class="c">#</th><th>Course</th><th>Board</th><th class="c">Board Bundle</th><th class="c">Bundle</th><th class="n">Papers</th></tr></thead><tbody>';
+    pend.slice(0,300).forEach(function(x,i){
+      ph+='<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(x['Course Code'])+'</b> '+esc(x['Course Name'])+'</td>'+
+        '<td><span class="pill inf">'+esc(x['Board'])+'</span></td><td class="c"><b>'+esc(x['Board Bundle No.'])+'</b></td><td class="c">'+esc(x['Bundle No.'])+'</td>'+
+        '<td class="n">'+esc(x['No. of Papers'])+'</td></tr>'; });
+    document.getElementById('alPending').innerHTML=pend.length?ph+'</tbody>'
+      :'<tbody><tr><td class="empty"><span class="e">&#9989;</span>Every bundle has a faculty assigned.</td></tr></tbody>';
+  });
+}
+document.getElementById('alRefresh').onclick=loadAllot;
+
+/* =============================== SETTINGS =============================== */
+var CFG_FIELDS=[
+  ['INSTITUTION','Institution name'],['OFFICE','Office line'],['EXAM_TITLE','Examination title'],
+  ['EXAM_MONTH','Examination month'],['EXAM_YEAR','Examination year'],['ACADEMIC_YEAR','Academic year'],
+  ['CIRCULAR_REF','Circular reference no.'],['VALUATION_VENUE','Valuation venue'],['VALUATION_TIME','Valuation timing'],
+  ['BUNDLE_SIZE','Scripts per bundle'],['RATE_PER_SCRIPT','Rate per script (Rs.)'],['MIN_CLAIM','Minimum claim (Rs.)'],
+  ['DA_PER_DAY','DA per day (Rs.) - external examiners only, no TA'],['DA_PER_SESSION','DA per session (Rs.)'],['SITTING_FEE','Sitting fee (Rs.)'],
+  ['TA_DEFAULT','Default TA - college not in TA chart (Rs.)'],['INTERNAL_TA','Internal examiner TA (Rs.)'],
+  ['TA_BASIS','TA is paid',['PER_VISIT','PER_DAY']],['TDS_PERCENT','TDS (%) on gross claim']
+];
+function renderConfigForm(){
+  var w=document.getElementById('splitWarn');
+  if(w) w.innerHTML=(String(CFG.DA_TA_SPLIT_CONFIRMED||'NO').toUpperCase()!=='YES')
+    ?'<div class="note w"><b>Check DA and TA before using claims.</b> DA and TA are now separate: <b>DA per day must be the DA part only</b> (it used to be &ldquo;DA + TA&rdquo;), and TA comes only from the TA chart below. TA is paid once per visit unless you set &ldquo;TA is paid&rdquo; to PER_DAY. Review the values, then press <b>Save configuration</b> to confirm.</div>':'';
+  document.getElementById('cfgForm').innerHTML=CFG_FIELDS.map(function(f){
+    if(f[2]) return '<div><label class="lb">'+f[1]+'</label><select class="inp" data-cfg="'+f[0]+'">'+
+      f[2].map(function(o){ return '<option'+((CFG[f[0]]||f[2][0])===o?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>';
+    return '<div><label class="lb">'+f[1]+'</label><input class="inp" data-cfg="'+f[0]+'" value="'+esc(CFG[f[0]]||'')+'"></div>';
+  }).join('');
+}
+document.getElementById('cfgSave').onclick=function(){
+  var b=this, patch={};
+  document.querySelectorAll('[data-cfg]').forEach(function(el){ patch[el.dataset.cfg]=el.value; });
+  patch.DA_TA_SPLIT_CONFIRMED='YES';
+  busy(b,true,'Saving');
+  api({action:'saveConfig',config:patch}).then(function(r){
+    if(!r.ok) throw new Error(r.error);
+    CFG=r.config; renderConfigPeek(); renderConfigForm(); toast('Configuration saved.','ok'); REPORT=null;
+  }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
+};
+
+/* =============================== USERS =============================== */
+function loadUsers(){
+  api({action:'userList'}).then(function(r){
+    if(!r.ok) return;
+    var h='<thead><tr><th>Name</th><th>Mail ID</th><th class="c">Role</th><th>Board</th><th>Department</th>'+
+      '<th class="c">Active</th><th class="c">Edit</th></tr></thead><tbody>';
+    (r.rows||[]).forEach(function(u){
+      h+='<tr><td><b>'+esc(u.name)+'</b></td><td>'+esc(u.mail)+'</td>'+
+        '<td class="c"><span class="pill '+(u.role==='COE'?'inf':'dim')+'">'+esc(u.role)+'</span></td>'+
+        '<td>'+esc(u.board)+'</td><td>'+esc(u.dept)+'</td>'+
+        '<td class="c"><span class="pill '+(String(u.active).toUpperCase()==='NO'?'err':'ok')+'">'+esc(u.active||'YES')+'</span></td>'+
+        '<td class="c"><button class="btn g sm" onclick=\'editUser('+JSON.stringify(u).replace(/'/g,"&#39;")+')\'>&#9998;</button></td></tr>';
+    });
+    document.getElementById('usrTable').innerHTML=h+'</tbody>';
+  });
+}
+function userForm(u){
+  u=u||{};
+  return '<div class="fr">'+
+    '<div><label class="lb">Name</label><input class="inp" id="us_name" value="'+esc(u.name||'')+'"></div>'+
+    '<div><label class="lb">Mail ID *</label><input class="inp" id="us_mail" value="'+esc(u.mail||'')+'"></div></div>'+
+    '<div class="fr" style="margin-top:10px">'+
+    '<div><label class="lb">Password'+(u._row?' (blank keeps current)':' *')+'</label><input class="inp" id="us_pass" type="text"></div>'+
+    '<div><label class="lb">Role</label><select class="inp" id="us_role"><option'+(u.role==='COE'?' selected':'')+'>COE</option>'+
+    '<option'+(u.role==='HOD'?' selected':'')+'>HOD</option></select></div></div>'+
+    '<div class="fr" style="margin-top:10px">'+
+    '<div><label class="lb">Board (HoD)</label><input class="inp" id="us_board" value="'+esc(u.board||'')+'" list="boardList"></div>'+
+    '<div><label class="lb">Department</label><input class="inp" id="us_dept" value="'+esc(u.dept||'')+'"></div>'+
+    '<div><label class="lb">Active</label><select class="inp" id="us_act"><option>YES</option>'+
+    '<option'+(String(u.active).toUpperCase()==='NO'?' selected':'')+'>NO</option></select></div></div>';
+}
+function saveUser(_row){
+  var g=function(i){ return document.getElementById('us_'+i).value; };
+  var row={_row:_row||'',name:g('name'),mail:g('mail'),password:g('pass'),role:g('role'),
+           board:g('board'),dept:g('dept'),active:g('act')};
+  if(!row.mail.trim()){ toast('Mail ID is required.','err'); return false; }
+  api({action:'userSave',row:row}).then(function(r){
+    if(!r.ok) throw new Error(r.error); loadUsers(); toast('User saved.','ok');
+  }).catch(function(e){ toast(e.message,'err'); });
+}
+document.getElementById('usrAdd').onclick=function(){
+  modal('Add user','HoD accounts should carry the board they chair, so their console filters automatically.',
+    userForm(null),[{t:'Cancel',c:'g'},{t:'Save',c:'',fn:function(){ return saveUser(''); }}]); };
+window.editUser=function(u){
+  modal('Edit '+esc(u.mail),'',userForm(u),
+    [{t:'Cancel',c:'g'},{t:'Save',c:'',fn:function(){ return saveUser(u._row); }}]); };
+
+/* =============================== AUDIT =============================== */
+function loadAudit(){
+  api({action:'audit'}).then(function(r){
+    if(!r.ok) return;
+    var h='<thead><tr><th>Time</th><th>User</th><th class="c">Role</th><th>Action</th><th>Details</th></tr></thead><tbody>';
+    (r.rows||[]).forEach(function(a){
+      h+='<tr><td style="white-space:nowrap">'+esc(a['Timestamp'])+'</td><td>'+esc(a['User'])+'</td>'+
+        '<td class="c"><span class="pill dim">'+esc(a['Role'])+'</span></td>'+
+        '<td><b>'+esc(a['Action'])+'</b></td><td>'+esc(a['Details'])+'</td></tr>'; });
+    document.getElementById('auTable').innerHTML=(r.rows&&r.rows.length)?h+'</tbody>'
+      :'<tbody><tr><td class="empty"><span class="e">&#128220;</span>No activity recorded yet.</td></tr></tbody>';
+  });
+}
+document.getElementById('auRefresh').onclick=loadAudit;
+
+/* ===================================================================================
+ *                                    L O G O
+ *  Loaded on the Reports page, remembered in this browser, printed at the top of
+ *  every page of every report (PDF / Word / Excel) in place of the college name.
+ * =================================================================================== */
+var LOGO='', LOGO_AR=1;
+function setLogo(src,persist){
+  LOGO=src||'';
+  var box=document.getElementById('logoBox');
+  if(!LOGO){ box.innerHTML='No logo'; LOGO_AR=1; try{ localStorage.removeItem(LS.logo); }catch(e){} return; }
+  box.innerHTML='<img src="'+LOGO+'" alt="logo">';
+  var im=new Image(); im.onload=function(){ LOGO_AR=(im.width/im.height)||1; }; im.src=LOGO;
+  if(persist){ try{ localStorage.setItem(LS.logo,LOGO); }catch(e){ toast('Logo is too large to remember; it will be used for this session only.','warn'); } }
+}
+document.getElementById('logoFile').onchange=function(){
+  var f=this.files[0]; if(!f) return;
+  if(!/^image\/(png|jpe?g)$/i.test(f.type)){ toast('Please choose a PNG or JPG image.','err'); this.value=''; return; }
+  if(f.size>2*1024*1024){ toast('Please use a logo under 2 MB.','err'); this.value=''; return; }
+  var fr=new FileReader();
+  fr.onload=function(e){ setLogo(e.target.result,true); toast('Logo loaded. It will appear on every report.','ok'); };
+  fr.readAsDataURL(f);
+};
+document.getElementById('logoClear').onclick=function(){ setLogo('',true); document.getElementById('logoFile').value=''; toast('Logo removed.','ok'); };
+try{ var _lg=localStorage.getItem(LS.logo); if(_lg) setLogo(_lg,false); }catch(e){}
+
+/* ===================================================================================
+ *                            R E P O R T   E N G I N E
+ * A report is built once as a neutral "spec" of sections, then rendered three ways:
+ *   toHTML()  -> print window (PDF)  and  .doc file (Word)
+ *   toXLSX()  -> ExcelJS workbook with the same merges
+ * =================================================================================== */
+
+/* ---------- spec helpers ---------- */
+function C(t,o){ o=o||{}; o.t=(t===undefined||t===null)?'':t; return o; }     // cell
+function secTitle(lines){ return {type:'title',lines:lines}; }
+function secMeta(rows){ return {type:'meta',rows:rows}; }
+function secKV(rows){ return {type:'kv',rows:rows}; }
+function secTable(head,body,widths,foot,opt){ return {type:'table',head:head,body:body,widths:widths,foot:foot||[],plain:!!(opt&&opt.plain)}; }
+function secNote(t,o){ return {type:'note',text:t,opt:o||{}}; }
+function secSigns(cols){ return {type:'signs',cols:cols}; }
+function secBreak(){ return {type:'break'}; }
+
+/* ---------- 1. generic HTML renderer (professional layout) ---------- */
+function toHTML(spec,forWord){
+  var paper=document.getElementById('rpPaper').value||'A4';
+  var css=''+
+   '*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
+   '@page{size:'+paper+' '+(spec.orientation||'portrait')+';margin:14mm 12mm 16mm 12mm;}'+
+   'body{font-family:"Times New Roman",Georgia,serif;font-size:'+(spec.fs||10.5)+'pt;line-height:1.4;color:#111;margin:0;}'+
+   '.pg{page-break-after:always;padding:0 2px;}.pg:last-child{page-break-after:auto;}'+
+   '.lg{text-align:center;margin:0 0 4px;}.lg img{height:22mm;max-width:70mm;}'+
+   '.hd{text-align:center;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #1f3864;}'+
+   '.ttl{text-align:center;font-weight:bold;color:#1f3864;line-height:1.35;}'+
+   '.t1{font-size:14pt;}.t2{font-size:12pt;}.t3{font-size:11.5pt;text-decoration:underline;margin:5px 0;}'+
+   '.t4{font-size:10.5pt;font-weight:normal;color:#222;}'+
+   'table.meta{width:100%;border-collapse:collapse;margin:6px 0;font-size:10pt;}'+
+   'table.meta td{padding:3px 0;vertical-align:top;}table.meta td.r{text-align:right;}'+
+   'table.g{width:100%;border-collapse:collapse;margin:8px 0 12px;table-layout:fixed;}'+
+   'table.g th,table.g td{border:1px solid #333;padding:4px 5px;font-size:'+(spec.tfs||9)+'pt;vertical-align:middle;word-wrap:break-word;overflow-wrap:break-word;}'+
+   'table.g th{background:#dfe6f3;color:#1f3864;font-weight:bold;text-align:center;}'+
+   'table.g td{height:7mm;}'+
+   'table.g tbody tr:nth-child(even) td{background:#f7f9fd;}'+
+   'table.g.plain tbody tr:nth-child(even) td{background:#fff;}'+
+   'table.g tr.tot td{background:#e9eef8;font-weight:bold;}'+
+   'table.g thead{display:table-header-group;}table.g tr{page-break-inside:avoid;}'+
+   'td.c,th.c{text-align:center;}td.r,th.r{text-align:right;}td.b,th.b{font-weight:bold;}'+
+   'table.kvt{border-collapse:collapse;margin:6px 0 10px;font-size:10pt;}'+
+   'table.kvt td{padding:2px 0;vertical-align:top;}table.kvt td.k{width:62mm;font-weight:bold;}table.kvt td.s{width:7mm;text-align:center;}'+
+   '.note{font-size:10pt;margin:8px 0;text-align:justify;}'+
+   'table.sgt{width:100%;border-collapse:collapse;margin-top:6mm;page-break-inside:avoid;}'+
+   'table.sgt td{padding:0 8mm;text-align:center;vertical-align:bottom;height:20mm;font-size:10pt;font-weight:bold;}'+
+   'table.sgt td div{border-top:1px solid #333;padding-top:2px;}'+
+   '.ft{margin-top:14px;padding-top:4px;border-top:1px solid #9aa5c0;font-size:8pt;color:#555;text-align:right;}';
+
+  var lsrc=forWord?'file:///C:/eplogo.'+logoExt():LOGO;
+  var logoHtml=LOGO?'<div class="lg"><img src="'+lsrc+'" alt=""></div>':'';
+  var pagesArr=spec.pages||[spec.sections];
+  var stamp=fmtDate(new Date().toISOString());
+  var body='';
+  pagesArr.forEach(function(sections,i){
+    body+='<div class="pg">'+logoHtml+sections.map(renderSection).join('')+
+      '<div class="ft">'+esc(CFG.INSTITUTION||'')+' &middot; Generated on '+stamp+' &middot; Page '+(i+1)+' of '+pagesArr.length+'</div></div>';
+  });
+
+  if(forWord){
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" '+
+      'xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8">'+
+      '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'+
+      '<style>'+css+'</style></head><body>'+body+'</body></html>';
+  }
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(spec.file||'Report')+'</title>'+
+    '<style>'+css+'</style></head><body>'+body+'</body></html>';
+}
+function logoExt(){ return /^data:image\/jpe?g/i.test(LOGO)?'jpg':'png'; }
+function renderSection(s){
+  if(s.type==='title')
+    return '<div class="hd">'+s.lines.map(function(l){
+      return '<div class="ttl '+(l.cls||'t2')+'">'+esc(l.t)+'</div>'; }).join('')+'</div>';
+  if(s.type==='meta')
+    return '<table class="meta">'+s.rows.map(function(r){
+      return '<tr><td>'+boldify(r[0])+'</td><td class="r">'+boldify(r[1])+'</td></tr>'; }).join('')+'</table>';
+  if(s.type==='kv')
+    return '<table class="kvt">'+s.rows.map(function(r){
+      return '<tr><td class="k">'+boldify(r[0])+'</td><td class="s">:</td><td>'+boldify(r[1])+'</td></tr>'; }).join('')+'</table>';
+  if(s.type==='note') return '<div class="note">'+boldify(s.text)+'</div>';
+  if(s.type==='signs')
+    return '<table class="sgt"><tr>'+s.cols.map(function(c){ return '<td>'+(c?'<div>'+esc(c)+'</div>':'')+'</td>'; }).join('')+'</tr></table>';
+  if(s.type==='break') return '<div style="page-break-after:always"></div>';
+  if(s.type==='table'){
+    var h='<table class="g'+(s.plain?' plain':'')+'">';
+    if(s.widths&&s.widths.length){
+      var tw=s.widths.reduce(function(a,w){ return a+w; },0)||100;
+      h+='<colgroup>'+s.widths.map(function(w){ return '<col style="width:'+(w*100/tw).toFixed(2)+'%">'; }).join('')+'</colgroup>';
+    }
+    if(s.head&&s.head.length) h+='<thead>'+s.head.map(rowHtml('th')).join('')+'</thead>';
+    h+='<tbody>'+(s.body||[]).map(rowHtml('td')).join('');
+    if(s.foot&&s.foot.length) h+=s.foot.map(rowHtml('td','tot')).join('');
+    return h+'</tbody></table>';
+  }
+  return '';
+}
+function rowHtml(tag,trc){
+  return function(row){
+    return '<tr'+(trc?' class="'+trc+'"':'')+'>'+row.map(function(c){
+      c=(typeof c==='object'&&c!==null)?c:C(c);
+      var at='';
+      if(c.cs>1) at+=' colspan="'+c.cs+'"';
+      if(c.rs>1) at+=' rowspan="'+c.rs+'"';
+      var cls=[]; if(c.a==='c') cls.push('c'); if(c.a==='r') cls.push('r'); if(c.b) cls.push('b');
+      if(cls.length) at+=' class="'+cls.join(' ')+'"';
+      var tx=esc(c.t); if(tx==='') tx='&nbsp;';
+      return '<'+tag+at+'>'+tx+'</'+tag+'>';
+    }).join('')+'</tr>';
+  };
+}
+function boldify(s){ return esc(s===undefined||s===null?'':s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
+
+/* ---------- 2. PDF (print) ---------- */
+function outPDF(spec){
+  var w=window.open('','_blank');
+  if(!w){ toast('Allow pop-ups for this site so the print view can open.','err'); return; }
+  w.document.write(toHTML(spec,false));
+  w.document.close();
+  var fired=false, go=function(){ if(fired) return; fired=true; try{ w.focus(); w.print(); }catch(e){} };
+  w.onload=function(){ setTimeout(go,400); };
+  setTimeout(go,1200);
+  toast('Print view opened &mdash; choose "Save as PDF".','ok');
+}
+/* ---------- 3. Word  (MHTML when a logo is present so the image is embedded and shows in Word) ---------- */
+function outWord(spec){
+  var html=toHTML(spec,true), blob;
+  var m=LOGO.match(/^data:(image\/[a-z+.-]+);base64,(.*)$/i);
+  if(m){
+    var wrap=function(s){ return s.replace(/(.{76})/g,'$1\r\n'); };
+    var b='----=_NextPart_EP'+Date.now();
+    var mht=['MIME-Version: 1.0',
+      'Content-Type: multipart/related; boundary="'+b+'"; type="text/html"','',
+      '--'+b,'Content-Type: text/html; charset="utf-8"','Content-Transfer-Encoding: base64',
+      'Content-Location: file:///C:/report.htm','',
+      wrap(btoa(unescape(encodeURIComponent(html)))),'',
+      '--'+b,'Content-Type: '+m[1],'Content-Transfer-Encoding: base64',
+      'Content-Location: file:///C:/eplogo.'+logoExt(),'',
+      wrap(m[2]),'','--'+b+'--',''].join('\r\n');
+    blob=new Blob([mht],{type:'application/msword'});
+  } else blob=new Blob(['\ufeff'+html],{type:'application/msword;charset=utf-8'});
+  saveAs(blob,spec.file+'.doc');
+  toast('Word file downloaded.','ok');
+}
+/* ---------- 4. Excel ---------- */
+function logoColPos(ws,span,wpx){
+  var cols=[],tot=0,c;
+  for(c=1;c<=span;c++){ var w=((ws.getColumn(c).width||14)*7)+5; cols.push(w); tot+=w; }
+  var x=Math.max(0,(tot-wpx)/2), acc=0;
+  for(c=0;c<span;c++){ if(acc+cols[c]>x) return c+(x-acc)/cols[c]; acc+=cols[c]; }
+  return 0;
+}
+function outExcel(spec){
+  var wb=new ExcelJS.Workbook();
+  wb.creator=CFG.INSTITUTION||'Evaluation Portal';
+  var pages=spec.pages||[spec.sections];
+  var imgId=null;
+  if(LOGO){
+    var mm=LOGO.match(/^data:image\/[a-z+.-]+;base64,(.*)$/i);
+    if(mm) imgId=wb.addImage({base64:mm[1],extension:/^data:image\/jpe?g/i.test(LOGO)?'jpeg':'png'});
+  }
+  pages.forEach(function(sections,pi){
+    var nm=(spec.sheet||spec.file||'Report').substring(0,24)+(pages.length>1?' '+(pi+1):'');
+    var ws=wb.addWorksheet(nm.replace(/[\\\/\?\*\[\]:]/g,'-'),
+      {pageSetup:{orientation:spec.orientation||'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0,
+                  paperSize:9,horizontalCentered:true,
+                  margins:{left:.4,right:.4,top:.6,bottom:.6,header:.25,footer:.25}}});
+    ws.headerFooter.oddFooter='&L&8'+(CFG.INSTITUTION||'')+'&R&8Page &P of &N';
+    var span=maxSpan(sections)||8;
+    // column widths first, so the logo can be centred over the table
+    if(spec.widths&&spec.widths.length) spec.widths.forEach(function(w,i){ ws.getColumn(i+1).width=Math.max(5,w*0.95); });
+    else for(var c=1;c<=span;c++) ws.getColumn(c).width=14;
+    var r=1;
+    if(imgId!==null){
+      var h=64, w=Math.round(h*LOGO_AR);
+      for(var k=1;k<=4;k++) ws.getRow(k).height=18;
+      ws.addImage(imgId,{tl:{col:logoColPos(ws,span,w),row:0.2},ext:{width:w,height:h}});
+      r=5;
+    }
+    sections.forEach(function(s){ r=xlSection(ws,s,r,span,spec); });
+  });
+  wb.xlsx.writeBuffer().then(function(buf){
+    saveAs(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), spec.file+'.xlsx');
+    toast('Excel file downloaded.','ok');
+  }).catch(function(e){ toast('Excel export failed: '+e.message,'err'); });
+}
+function maxSpan(sections){
+  var m=0;
+  sections.forEach(function(s){
+    if(s.type!=='table') return;
+    if(s.widths&&s.widths.length) m=Math.max(m,s.widths.length);
+    (s.head||[]).concat(s.body||[],s.foot||[]).forEach(function(row){
+      var w=0; row.forEach(function(c){ c=(typeof c==='object'&&c)?c:C(c); w+=(c.cs||1); });
+      m=Math.max(m,w);
+    });
+  });
+  return m;
+}
+var XL_BORDER={top:{style:'thin',color:{argb:'FF444444'}},left:{style:'thin',color:{argb:'FF444444'}},
+               bottom:{style:'thin',color:{argb:'FF444444'}},right:{style:'thin',color:{argb:'FF444444'}}};
+function xlSection(ws,s,r,span,spec){
+  if(s.type==='title'){
+    s.lines.forEach(function(l){
+      ws.mergeCells(r,1,r,span);
+      var c=ws.getCell(r,1); c.value=l.t;
+      c.font={bold:true,size:l.cls==='t1'?14:(l.cls==='t4'?10:11.5),name:'Times New Roman',
+              underline:l.cls==='t3',color:{argb:'FF1F3864'}};
+      c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+      ws.getRow(r).height=l.cls==='t1'?22:18; r++;
+    });
+    r++; return r;
+  }
+  if(s.type==='meta'){
+    s.rows.forEach(function(row){
+      var half=Math.max(1,Math.floor(span/2));
+      ws.mergeCells(r,1,r,half); ws.mergeCells(r,half+1,r,span);
+      var a=ws.getCell(r,1); a.value=plain(row[0]); a.font={bold:true,name:'Times New Roman',size:10};
+      a.alignment={horizontal:'left'};
+      var b=ws.getCell(r,half+1); b.value=plain(row[1]||''); b.font={bold:true,name:'Times New Roman',size:10};
+      b.alignment={horizontal:'right'};
+      r++;
+    });
+    r++; return r;
+  }
+  if(s.type==='kv'){
+    var lab=Math.max(1,Math.min(span-1,Math.floor(span*0.4)));
+    s.rows.forEach(function(row){
+      if(lab>1) ws.mergeCells(r,1,r,lab);
+      var a=ws.getCell(r,1); a.value=plain(row[0])+' :'; a.font={bold:true,name:'Times New Roman',size:10}; a.alignment={horizontal:'left'};
+      if(span>lab){
+        if(span>lab+1) ws.mergeCells(r,lab+1,r,span);
+        var b=ws.getCell(r,lab+1); b.value=plain(row[1]); b.font={name:'Times New Roman',size:10}; b.alignment={horizontal:'left'};
+      }
+      r++;
+    });
+    r++; return r;
+  }
+  if(s.type==='note'){
+    ws.mergeCells(r,1,r,span);
+    var c=ws.getCell(r,1); c.value=plain(s.text);
+    c.alignment={wrapText:true,vertical:'top'}; c.font={name:'Times New Roman',size:10};
+    ws.getRow(r).height=Math.min(70,16+Math.floor(String(s.text).length/Math.max(1,span*9))*13);
+    r+=2; return r;
+  }
+  if(s.type==='signs'){
+    r++;
+    var per=Math.max(1,Math.floor(span/s.cols.length));
+    s.cols.forEach(function(t,i){
+      var c1=i*per+1, c2=(i===s.cols.length-1)?span:(c1+per-1);
+      if(c2>=c1) ws.mergeCells(r,c1,r,c2);
+      var c=ws.getCell(r,c1); c.value=t; c.font={bold:true,name:'Times New Roman',size:10};
+      c.alignment={horizontal:'center'};
+    });
+    r+=2; return r;
+  }
+  if(s.type==='break'){ return r+1; }
+  if(s.type==='table'){
+    var occ={}, zebra=0;
+    var put=function(rows,isHead){
+      rows.forEach(function(row){
+        var col=1, ml=1; zebra++;
+        row.forEach(function(cell){
+          cell=(typeof cell==='object'&&cell!==null)?cell:C(cell);
+          while(occ[r+','+col]) col++;
+          var cs=cell.cs||1, rs=cell.rs||1;
+          if(cs>1||rs>1){
+            try{ ws.mergeCells(r,col,r+rs-1,col+cs-1); }catch(e){}
+            for(var a=0;a<rs;a++) for(var b=0;b<cs;b++) occ[(r+a)+','+(col+b)]=1;
+          } else occ[r+','+col]=1;
+          var c=ws.getCell(r,col);
+          var v=cell.t;
+          c.value=(v!==''&&v!==null&&!isNaN(v)&&typeof v!=='boolean'&&/^-?\d+(\.\d+)?$/.test(String(v))&&String(v).length<10)?Number(v):v;
+          c.border=XL_BORDER;
+          c.font={bold:!!(isHead||cell.b),name:'Times New Roman',size:9,color:{argb:isHead?'FFFFFFFF':'FF000000'}};
+          c.alignment={horizontal:isHead?'center':(cell.a==='c'?'center':(cell.a==='r'?'right':'left')),
+                       vertical:'middle',wrapText:true};
+          if(isHead) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}};
+          else if(zebra%2===0) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF4F6FB'}};
+          if(rs===1){ var wc=0; for(var q=0;q<cs;q++) wc+=(ws.getColumn(col+q).width||14); var ln=Math.ceil(String(cell.t).length/Math.max(3,wc*1.05)); if(ln>ml) ml=ln; }
+          col+=cs;
+        });
+        // fill the rest of the row so the border grid is unbroken
+        for(var k=1;k<=span;k++){ if(!occ[r+','+k]){ var e=ws.getCell(r,k); e.border=XL_BORDER; occ[r+','+k]=1; } }
+        ws.getRow(r).height=Math.max(isHead?20:18,ml*12+6);
+        r++;
+      });
+    };
+    put(s.head||[],true); put(s.body||[],false); put(s.foot||[],false);
+    r++; return r;
+  }
+  return r;
+}
+function plain(s){ return String(s===undefined?'':s).replace(/\*\*/g,''); }
+
+/* ---------- report data ---------- */
+function loadReportData(){
+  var box=document.getElementById('rpStatus');
+  box.innerHTML='<div class="note i"><span class="spin2"></span> Fetching report data&hellip;</div>';
+  return api({action:'reportData',board:'ALL'}).then(function(r){
+    if(!r.ok) throw new Error(r.error);
+    REPORT=r; CFG=r.config||CFG; TA=r.taChart||TA;
+    box.innerHTML='<div class="note s">Data ready &mdash; <b>'+r.before.length+'</b> courses, <b>'+r.data.length+
+      '</b> bundles, <b>'+r.external.length+'</b> external and <b>'+r.internal.length+'</b> internal examiners.</div>';
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+}
+document.getElementById('rpReload').onclick=function(){ REPORT=null; loadReportData(); };
+document.getElementById('rpBoard').onchange=function(){};
+
+function R(){ return REPORT||{before:[],during:[],data:[],internal:[],external:[],config:CFG}; }
+function boardFilter(){ return document.getElementById('rpBoard').value||'ALL'; }
+function boardsToRun(){
+  var b=boardFilter();
+  if(b!=='ALL') return [b];
+  var set={}; R().data.forEach(function(x){ if(x['Board']) set[x['Board']]=1; });
+  R().during.forEach(function(x){ if(x['Board']) set[x['Board']]=1; });
+  var l=Object.keys(set).sort();
+  return l.length?l:['ALL'];
+}
+function byBoard(rows,b){ return b==='ALL'?rows:rows.filter(function(r){ return String(r['Board']).trim()===b; }); }
+function valDate(){ var d=document.getElementById('rpDate').value; return d?fmtDate(d):''; }
+/* With a logo loaded it replaces the college name at the top of every report */
+function headLines(extra){
+  var L=[];
+  if(!LOGO) L.push({t:CFG.INSTITUTION||'',cls:'t1'});
+  L.push({t:CFG.OFFICE||'Office of the Controller of Examinations',cls:LOGO?'t1':'t2'},
+         {t:'Valuation for '+(CFG.EXAM_TITLE||'End Semester Examinations'),cls:'t4'},
+         {t:'Year - I, II, III & IV / (UG) - I & II (PG)',cls:'t4'});
+  if(extra) L.push({t:extra,cls:'t3'});
+  return L;
+}
+
+/* ================= REPORT 1 : PROFORMA ================= */
+function repProforma(){
+  var b=boardFilter();
+  var during=byBoard(R().during,b), before=byBoard(R().before,b);
+  var src=during.length?during:before;
+  var day={};
+  src.forEach(function(r){ var k=toISO(r['Date'])+'|'+r['Session'];
+    day[k]=(day[k]||0)+n(r['Present']||r['Total Students']); });
+  var seen={};
+  var head=[
+    [C('Sl. No.',{rs:2}),C('Sem.',{rs:2}),C('Course Code',{rs:2}),C('Course Name',{rs:2}),C('Reg.',{rs:2}),
+     C('R / A',{rs:2}),C('Board',{rs:2}),C('Dept.',{rs:2}),C('H / M',{rs:2}),C('Date',{rs:2}),C('Session',{rs:2}),
+     C('Count',{rs:2}),C('Day Count',{rs:2}),C('Print Count',{rs:2}),C('QP Code',{rs:2}),
+     C('Foilcard Number',{cs:2}),C('Dummy Number',{cs:2}),C('Answer Bundle',{cs:2}),C('No. of',{cs:3}),C('Remarks',{cs:6})],
+    [C('From'),C('To'),C('From'),C('To'),C('From'),C('To'),C('Count'),C('Pre'),C('Ab'),
+     C('Cover'),C('Dept.'),C('Library'),C('Exam'),C('OC'),C('Total')]
+  ];
+  var body=src.map(function(r,i){
+    var k=toISO(r['Date'])+'|'+r['Session'];
+    var dc=seen[k]?'':day[k]; seen[k]=1;
+    var present=n(r['Present']||r['Total Students']);
+    var depts=String(r['Departments']||'').split(/[,;]/).filter(function(x){ return x.trim(); }).length||1;
+    var cover=1, lib=1, oc=1;
+    var total=cover+depts+lib+present+oc;
+    var bundles=R().data.filter(function(d){ return d['Course Code']===r['Course Code']; });
+    return [C(i+1,{a:'c'}),C(r['Sem'],{a:'c'}),C(r['Course Code'],{b:1}),C(r['Course Name']),
+      C(r['Regulation'],{a:'c'}),C(r['Regular/Arrear'],{a:'c'}),C(r['Board'],{a:'c'}),C(r['Departments']),
+      C(r['HM']||'',{a:'c'}),
+      C(fmtDate(r['Date']),{a:'c'}),C(r['Session'],{a:'c'}),C(present,{a:'r'}),C(dc,{a:'r'}),C(total,{a:'r'}),
+      C(r['QP Code']||'',{a:'c'}),C(r['Foilcard From']||'',{a:'c'}),C(r['Foilcard To']||'',{a:'c'}),
+      C(r['Dummy From']||'',{a:'c'}),C(r['Dummy To']||'',{a:'c'}),
+      C(bundles.length?1:'',{a:'c'}),C(bundles.length||'',{a:'c'}),
+      C(present,{a:'r'}),C(present,{a:'r'}),C(n(r['Absentees']),{a:'r'}),
+      C(cover,{a:'c'}),C(depts,{a:'c'}),C(lib,{a:'c'}),C(present,{a:'r'}),C(oc,{a:'c'}),C(total,{a:'r'})];
+  });
+  var tot=src.reduce(function(a,r){ return a+n(r['Present']||r['Total Students']); },0);
+  var foot=[[C('Total',{cs:11,b:1,a:'r'}),C(tot,{b:1,a:'r'}),C('',{cs:18})]];
+  var widths=[4,4,7,16,4,3.5,6,9,3.5,6,4,4,5,5,5,5.5,5.5,4.5,4.5,4,4,4,4,4,3.5,3.5,4,4,3.5,4];
+  return {file:'Proforma_'+b, sheet:'Proforma', orientation:'landscape', fs:9, tfs:7.5, widths:widths,
+    sections:[ secTitle(headLines('Proforma — '+(b==='ALL'?'All Boards':'Board : '+b))),
+               secMeta([['**Examination : **'+(CFG.EXAM_TITLE||''),'**Date : **'+valDate()]]),
+               secTable(head,body,widths,foot) ]};
+}
+
+/* ================= REPORT 2 : CHECKLIST ================= */
+function repCheckList(){
+  var W=[6,10,24,12,11,7,7,8,8,7];
+  var pages=boardsToRun().map(function(b){
+    var seq=function(r){ var m=String(bb(r)).match(/(\d+)\s*$/); return m?parseInt(m[1],10):0; };
+    var rows=byBoard(R().data,b).slice().sort(function(x,y){ return seq(x)-seq(y); });   // Board Bundle order
+    var head=[
+      [C('S.No.',{rs:2}),C('Course Code',{rs:2}),C('Course Name',{rs:2}),C('Board Bundle No.',{rs:2}),
+       C('Foilcard No.',{rs:2}),C('Dummy Number',{cs:2}),C('No. of Booklets',{rs:2}),C('Checklist (Please Tick)',{cs:2})],
+      [C('From'),C('To'),C('Answer Booklet'),C('OMR')]
+    ];
+    var body=rows.map(function(r,i){
+      return [C(i+1,{a:'c'}),C(r['Course Code'],{b:1,a:'c'}),C(r['Course Name']),C(bb(r),{a:'c',b:1}),
+        C(r['Foilcard No.'],{a:'c'}),C(r['Dummy No. From'],{a:'c'}),C(r['Dummy No. To'],{a:'c'}),
+        C(r['No. of Papers'],{a:'c'}),C(''),C('')];
+    });
+    if(!body.length) body=[[C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C('')]];
+    var books=rows.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+    var foot=[[C('Total Bundles : '+rows.length,{cs:5,b:1,a:'r'}),C('Total Booklets',{cs:2,b:1,a:'r'}),C(books,{b:1,a:'c'}),C('',{cs:2})]];
+    var used={}; rows.forEach(function(r){ if(r['Alloted Faculty ID']) used[r['Alloted Faculty ID']]=r['Faculty Type']; });
+    var ints=Object.keys(used).filter(function(k){ return !/^EXT/i.test(k); }).length;
+    var exts=Object.keys(used).length-ints;
+    var head2=[[C('S.No.'),C('Particulars'),C("No's"),C('Verification (Tick Mark)')]];
+    // OMR sheets are counted per bundle (one OMR sheet for each bundle), not per booklet
+    var body2=[['1','No of OMR Sheet',rows.length,''],['2','Issue Register (Cum Claim) Sheet for All Examiners',ints+exts,''],
+               ['3','Chairman Booklet','1',''],['4','Tabulator Form Booklet','1',''],['5','Feedback Booklet',exts,'']]
+      .map(function(r){ return [C(r[0],{a:'c'}),C(r[1]),C(r[2],{a:'c'}),C(r[3])]; });
+    return [ secTitle(headLines('Check List')),
+             secMeta([['**BOARD : **'+b,'**DATE : **'+valDate()]]),
+             secTable(head,body,W,foot),
+             secKV([['Total Bundle',rows.length],['Total No of Booklets',books],
+                    ['Total No of Internals',ints||'_______'],['Total No of Externals',exts||'_______']]),
+             secSigns(['Signature of CoE Staff','Signature of the Board Chairman']),
+             secTitle([{t:'Check List',cls:'t3'}]),
+             secTable(head2,body2,[8,54,14,24]) ];
+  });
+  return {file:'CheckList_'+boardFilter(), sheet:'CheckList', orientation:'portrait',
+          widths:W, pages:pages};
+}
+
+/* ================= REPORT 3 : FEEDBACK FORM ================= */
+var FB_Q=['Whether you received the appointment order in advance',
+'Whether the Chairman allocate the Answer scripts as per your willingness',
+'Whether the time is sufficient for value the Answer Scripts',
+'Whether you received the Answer scripts in Proper time',
+'Whether the Chairman gave full freedom in evaluating the Answer Script.',
+'Whether the tabulator check the Answer scripts properly',
+'Whether the Data Entry Operators provide the full cooperation for Entry of mark',
+'Overall infra-structure and support of the exam cell is',
+'Whether the Valuation process is scheduled in proper Manner',
+'Any other Suggestions (if any) for the further improvement.'];
+function fbPage(ex,board){
+  var body=FB_Q.map(function(q,i){
+    var ans=i===7?'Excellent / Good / Satisfactory':(i===8?'Excellent / Good / Satisfactory':(i===9?'':'Yes / No'));
+    return [C(i+1,{a:'c'}),C(q),C(ans,{a:'c'})];
+  });
+  return [ secTitle(headLines('External Feed Back Form for Central Valuation')),
+           secMeta([['**External Examiner Name : **'+(ex?ex['Name of the Faculty']:''),
+                     '**Board : **'+(ex?(ex['Board']||board):board)]]),
+           secMeta([['**College Code – Name : **'+(ex?((ex['College Code']||'')+' – '+(ex['College Name']||'')):''),
+                     '**Mobile : **'+(ex?(ex['Mobile Number']||''):'')]]),
+           secTable([[C('S. No'),C('Questions'),C('Feedback')]],body,[8,62,30]),
+           secSigns(['','Signature of the Examiner']) ];
+}
+function repFeedback(){
+  var pages=[];
+  boardsToRun().forEach(function(b){
+    var list=R().external.filter(function(e){ return b==='ALL'||String(e['Board']).trim()===b; });
+    if(!list.length){ pages.push(fbPage(null,b)); pages.push(fbPage(null,b)); }
+    else list.forEach(function(e){ pages.push(fbPage(e,b)); });
+  });
+  return {file:'FeedbackForm_'+boardFilter(), sheet:'Feedback', orientation:'portrait',
+          widths:[8,62,30], pages:pages};
+}
+
+/* ================= REPORT 4 : ISSUE REGISTER ================= */
+function irPage(ex,bundles,board,isExt){
+  var c=calcClaim(ex,bundles,isExt);
+  var rate=amt(CFG.RATE_PER_SCRIPT||20), minc=amt(CFG.MIN_CLAIM||100), pct=amt(CFG.TDS_PERCENT||0);
+  var head=[
+    [C('Board Bundle No.',{rs:2}),C('Date',{rs:2}),C('Session',{rs:2}),C('Course Code and Name',{rs:2}),
+     C('Foil Card. No.',{rs:2}),C('Dummy No.',{cs:2}),C('Script Count',{rs:2}),
+     C('Signature of the Examiner',{cs:2}),C('Claim Section  (TDS as per Govt. norms)',{cs:2})],
+    [C('From'),C('To'),C('Answer Bundle Received'),C('OMR Submitted'),C('Particulars'),C('Amount')]
+  ];
+  var claims=[
+    ['Total Number of Answer Scripts valued', c.scripts],
+    ['Rate per script','Rs. '+money(rate)+' (min. Rs. '+money(minc)+')'],
+    ['Valuation amount (A)','Rs. '+money(c.A)],
+    [(isExt?'DA only @ Rs. '+money(amt(CFG.DA_PER_DAY||0))+' x '+c.days+' day(s) (B)':'DA - not applicable to internal examiners (B)'),'Rs. '+money(c.B)],
+    ['TA '+(c.perDay?'x '+c.days+' day(s)':'once')+(isExt&&ex&&ex['College Name']?' - '+ex['College Name']:'')+' (T)','Rs. '+money(c.T)],
+    ['Sitting fee (C)','Rs. '+money(c.C)],
+    ['Gross = A + B + T + C','Rs. '+money(c.gross)],
+    ['TDS @ '+money(pct)+'%','Rs. '+money(c.tds)],
+    ['Net payable','Rs. '+money(c.net)]
+  ];
+  var body=[];
+  var maxRows=Math.max(bundles.length, claims.length);
+  for(var i=0;i<maxRows;i++){
+    var bn=bundles[i];
+    body.push([
+      C(bn?bb(bn):'',{a:'c'}), C(bn?fmtDate(bn['Date']):'',{a:'c'}), C(bn?bn['Session']:'',{a:'c'}),
+      C(bn?(bn['Course Code']+' - '+bn['Course Name']):''),
+      C(bn?bn['Foilcard No.']:'',{a:'c'}), C(bn?bn['Dummy No. From']:'',{a:'c'}), C(bn?bn['Dummy No. To']:'',{a:'c'}),
+      C(bn?bn['No. of Papers']:'',{a:'c'}), C(''), C(''),
+      C(claims[i]?claims[i][0]:''), C(claims[i]?claims[i][1]:'',{a:'c'})
+    ]);
+  }
+  var foot=[[C('No. of Days : '+c.days,{cs:4,b:1}),C('Total Script Valued : '+c.scripts,{cs:4,b:1,a:'c'}),
+             C('',{cs:2}),C('Net payable',{b:1}),C('Rs. '+money(c.net),{b:1,a:'c'})]];
+  return [ secTitle(headLines('Issue Register for '+(isExt?'External':'Internal')+' Examiner')),
+           secTable([],[[C('Examiner Name :',{b:1}),C(ex?ex['Name of the Faculty']:''),
+                      C('College Code and Name :',{b:1}),C(ex?(((ex['College Code']||'')+' '+(ex['College Name']||'')).trim()||ex['Department']||''):'')],
+                     [C('Mobile Number :',{b:1}),C(ex?(ex['Mobile Number']||ex['Mobile']||''):''),
+                      C('Board / ID. No. :',{b:1}),C(board+'  /  '+(ex?ex['ID']:''))]],[18,32,20,30],[],{plain:true}),
+           secTable(head,body,[7,6,4,15,7,5,5,5,7,7,22,10],foot),
+           secSigns(['Signature of the Examiner','Board Chairman','CoE staff']) ];
+}
+function repIssueRegister(){
+  var pages=[];
+  boardsToRun().forEach(function(b){
+    var rows=byBoard(R().data,b);
+    var byFac={};
+    rows.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim(); if(!id) return;
+      (byFac[id]=byFac[id]||[]).push(r); });
+    var ids=Object.keys(byFac);
+    if(!ids.length){ pages.push(irPage(null,[],b,true)); return; }
+    ids.forEach(function(id){
+      var isExt=/^EXT/i.test(id);
+      var pool=isExt?R().external:R().internal;
+      var ex=pool.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{ID:id,'Name of the Faculty':byFac[id][0]['Faculty Name']};
+      pages.push(irPage(ex,byFac[id],b,isExt));
+    });
+  });
+  return {file:'IssueRegister_'+boardFilter(), sheet:'IssueReg', orientation:'landscape',
+          widths:[7,6,4,15,7,5,5,5,7,7,22,10], pages:pages};
+}
+
+/* ================= REPORT 5 : TABULATION ================= */
+function repTabulation(){
+  var pages=boardsToRun().map(function(b){
+    var rows=byBoard(R().data,b);
+    var head=[
+      [C('Course Code & Name',{rs:2}),C('Board Bundle No.',{rs:2}),C('Foil Card Number',{rs:2}),C('Dummy Number of the Answer Scripts',{rs:2}),
+       C('Name of the Examiner',{rs:2}),C('Error in Total Mark Awarded',{rs:2}),C('Corrected Mark',{rs:2}),
+       C('Corrections are rectified Yes/No',{rs:2}),C('Signature',{cs:2})],
+      [C('Examiner'),C('Tabulator')]
+    ];
+    var body=rows.map(function(r){
+      return [C(r['Course Code']+' - '+r['Course Name']),C(bb(r),{a:'c',b:1}),C(r['Foilcard No.'],{a:'c'}),
+        C(r['Dummy No. From']+' - '+r['Dummy No. To'],{a:'c'}),C(r['Faculty Name']||''),
+        C(''),C(''),C(''),C(''),C('')];
+    });
+    if(!body.length) for(var i=0;i<6;i++) body.push([C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C('')]);
+    return [ secTitle(LOGO?[{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t1'},
+                            {t:'Valuation for End Semester Examinations April _______ November _______',cls:'t4'},
+                            {t:'Year - I, II, III & IV / (UG) - I & II (PG) - Tabulation of Answer Scripts',cls:'t4'}]
+                          :[{t:CFG.INSTITUTION||'',cls:'t1'},{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t2'},
+                            {t:'Valuation for End Semester Examinations April _______ November _______',cls:'t4'},
+                            {t:'Year - I, II, III & IV / (UG) - I & II (PG) - Tabulation of Answer Scripts',cls:'t4'}]),
+             secMeta([['**Board : **'+b,'**Date : **'+valDate()]]),
+             secTable(head,body,[20,9,9,13,15,9,8,9,4,4]),
+             secSigns(['','Signature of the Board Chairman']) ];
+  });
+  return {file:'TabulationValuation_'+boardFilter(), sheet:'Tabulation', orientation:'landscape',
+          widths:[20,9,9,13,15,9,8,9,4,4], pages:pages};
+}
+
+/* ================= REPORT 6 : ALLOTMENT FORM ================= */
+function allotBlock(rows,pool,kind,board){
+  var byFac={};
+  rows.forEach(function(r){
+    var id=String(r['Alloted Faculty ID']).trim();
+    var isExt=/^EXT/i.test(id);
+    if(!id) return;
+    if((kind==='EXTERNAL')!==isExt) return;
+    (byFac[id]=byFac[id]||[]).push(r);
+  });
+  var head=[
+    [C('ID NO for evaluator',{rs:3}),C('Valuator Name',{rs:3}),C('Allotted Bundle NO',{cs:4}),
+     C('Total Answer Script',{cs:4}),C('Overall Total',{rs:3}),C('Remark',{rs:3})],
+    [C('Day 1',{cs:2}),C('Day 2',{cs:2}),C('Day 1',{cs:2}),C('Day 2',{cs:2})],
+    [C('FN'),C('AN'),C('FN'),C('AN'),C('FN'),C('AN'),C('FN'),C('AN')]
+  ];
+  var tag=kind==='EXTERNAL'?'EV':'IV';
+  var ids=Object.keys(byFac);
+  var body=ids.map(function(id,i){
+    var list=byFac[id];
+    var slot={}, cnt={};
+    list.forEach(function(r){
+      var d=String(r['Valuation Day']||'Day 1'), s=String(r['Valuation Session']||r['Session']||'FN').toUpperCase();
+      var k=(/2/.test(d)?'D2':'D1')+s;
+      slot[k]=(slot[k]?slot[k]+', ':'')+bb(r);
+      cnt[k]=(cnt[k]||0)+n(r['No. of Papers']);
+    });
+    var fac=pool.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
+    var tot=list.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+    return [C(tag+'-'+(i+1)+' ('+id+')',{a:'c'}),C(fac['Name of the Faculty']||list[0]['Faculty Name']||''),
+      C(slot.D1FN||'',{a:'c'}),C(slot.D1AN||'',{a:'c'}),C(slot.D2FN||'',{a:'c'}),C(slot.D2AN||'',{a:'c'}),
+      C(cnt.D1FN||'',{a:'c'}),C(cnt.D1AN||'',{a:'c'}),C(cnt.D2FN||'',{a:'c'}),C(cnt.D2AN||'',{a:'c'}),
+      C(tot,{a:'c',b:1}),C('')];
+  });
+  if(!body.length){
+    var blanks=kind==='EXTERNAL'?2:6;
+    for(var i=0;i<blanks;i++) body.push([C(tag+'-'+(i+1),{a:'c'}),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C('')]);
+  }
+  var grand=rows.filter(function(r){ return (kind==='EXTERNAL')===/^EXT/i.test(String(r['Alloted Faculty ID'])); })
+                .reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+  var foot=[[C('Total',{cs:10,b:1,a:'r'}),C(grand,{b:1,a:'c'}),C('')]];
+  return [ secMeta([['**Board: '+board+'**     **Answer script allotment for '+kind+' Evaluator – Chart**','**Date: **'+valDate()]]),
+           secTable(head,body,[11,20,7,7,7,7,6,6,6,6,8,9],foot) ];
+}
+function repAllotment(){
+  var pages=boardsToRun().map(function(b){
+    var rows=byBoard(R().data,b);
+    var ttl=[{t:'Submit to the CoE Office via mail & Hardcopy',cls:'t4'}];
+    if(!LOGO) ttl.push({t:CFG.INSTITUTION||'',cls:'t1'});
+    ttl.push({t:CFG.OFFICE||'Office of the Controller of Examinations',cls:LOGO?'t1':'t2'},
+             {t:'Answer Script Allotment Chart',cls:'t3'});
+    return [ secTitle(ttl) ]
+      .concat(allotBlock(rows,R().external,'EXTERNAL',b))
+      .concat([secNote(' ')])
+      .concat(allotBlock(rows,R().internal,'INTERNAL',b))
+      .concat([secSigns(['','Signature of the Board Chairman'])]);
+  });
+  return {file:'AllotmentForm_'+boardFilter(), sheet:'Allotment', orientation:'landscape',
+          widths:[11,20,7,7,7,7,6,6,6,6,8,9], pages:pages};
+}
+
+/* ================= REPORT 7 : CENTRAL VALUATION CIRCULAR ================= */
+function extDetail(f){ return [f['Name of the Faculty'],f['Designation'],f['Department'],f['College Name'],f['College City'],f['Mobile Number']].filter(Boolean).join(', '); }
+function intDetail(f){ return [f['Name of the Faculty'],f['Designation'],f['Department'],CFG.INSTITUTION].filter(Boolean).join(', '); }
+function repCircular(){
+  var post=(document.getElementById('rpStage').value==='POST');
+  var pages=boardsToRun().map(function(b){
+    var rows=byBoard(R().data,b);
+    var courses={}, order=[];
+    rows.forEach(function(r){
+      if(!courses[r['Course Code']]){ courses[r['Course Code']]={sem:r['Sem'],code:r['Course Code'],
+        name:r['Course Name'],scripts:0}; order.push(r['Course Code']); }
+      courses[r['Course Code']].scripts+=n(r['No. of Papers']);
+    });
+    var body=order.map(function(c,i){
+      var o=courses[c];
+      return [C(i+1,{a:'c'}),C(o.sem,{a:'c'}),C(o.code,{a:'c',b:1}),C(o.name),C(o.scripts,{a:'c'})];
+    });
+    var total=order.reduce(function(a,c){ return a+courses[c].scripts; },0);
+    if(!body.length) body=[[C(''),C(''),C(''),C(''),C('')]];
+    var foot=[[C('Total',{cs:4,b:1,a:'r'}),C(total,{b:1,a:'c'})]];
+
+    var exRows=[], nInt=0, nExt=0;
+    if(post){                                            // stage 2: examiners actually allotted by the HoD
+      var used={}; rows.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim(); if(id) used[id]=1; });
+      var ids=Object.keys(used).sort();
+      var eIds=ids.filter(function(i){ return /^EXT/i.test(i); }), iIds=ids.filter(function(i){ return !/^EXT/i.test(i); });
+      nExt=eIds.length; nInt=iIds.length;
+      eIds.forEach(function(id,i){
+        var f=R().external.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
+        exRows.push([C('EV '+(i+1),{a:'c'}),C(extDetail(f)||id)]); });
+      iIds.forEach(function(id,i){
+        var f=R().internal.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
+        exRows.push([C('IV '+(i+1),{a:'c'}),C(intDetail(f)||id)]); });
+    } else {                                             // stage 1: external list of the board + manual internal count
+      var ext=R().external.filter(function(e){ return b==='ALL'||String(e['Board']).trim()===b; });
+      nExt=ext.length; nInt=n(INT_MANUAL[b]);
+      ext.forEach(function(f,i){ exRows.push([C('EV '+(i+1),{a:'c'}),C(extDetail(f))]); });
+      for(var k=0;k<nInt;k++) exRows.push([C('IV '+(k+1),{a:'c'}),C('Internal faculty - to be nominated by the Board Chairman')]);
+    }
+    if(!exRows.length) exRows=[[C('',{a:'c'}),C('')]];
+
+    return [ secMeta([['**Ref: '+(CFG.CIRCULAR_REF||'')+'**','**Date: **'+valDate()]]),
+             secTitle(headLines('Central Valuation for UG – '+(CFG.EXAM_TITLE||'End Semester Examinations')).filter(function(l){ return l.cls!=='t4'; })),
+             secNote('The Central Valuation for II Year & III Year UG End Semester Examinations (Descriptive type) '+
+                     'is scheduled on '+(valDate()||'__________')+'. The list of courses and examiners appointed for '+
+                     'the '+b+' board for the Central Valuation is given below:'),
+             secMeta([['**Date  :** '+(valDate()||'__________'),'**Time: '+(CFG.VALUATION_TIME||'')+'**']]),
+             secMeta([['**Board : '+b+'**','**Venue: '+(CFG.VALUATION_VENUE||'')+'**']]),
+             secKV([['Total Number of Answer Script',total],
+                    ['Number of Internal Examiner',nInt],
+                    ['Number of External Examiner',nExt],
+                    ['Total Number of Examiner',nInt+nExt]]),
+             secTable([[C('S. No'),C('Sem'),C('Course Code'),C('Course Name'),C('Number of Answer Scripts')]],
+                      body,[8,8,14,50,20],foot),
+             secNote('**Encl: Examiner List**'),
+             secSigns(['Deputy Controller of Examinations','Controller of Examinations','Principal']),
+             secBreak(),
+             secTitle([{t:'Examiner List',cls:'t3'},{t:'Board : '+b+(post?'':'  (before allotment)'),cls:'t4'}]),
+             secTable([[C('Examiner id'),C('Examiner Details')]],exRows,[14,86]),
+             secSigns(['Deputy Controller of Examinations','Controller of Examinations','Principal']) ];
+  });
+  return {file:'CentralValuationCircular_'+(post?'Stage2_':'Stage1_')+boardFilter(), sheet:'Circular', orientation:'portrait',
+          widths:[8,8,14,50,20], pages:pages};
+}
+
+/* ================= REPORT 8 : CHAIRMAN WORKOUT CHART ================= */
+function repChairman(){
+  var pages=boardsToRun().map(function(b){
+    var rows=byBoard(R().data,b);
+    var head=[[C('Board Bundle ID No.'),C('Course Code'),C('Course Name'),C('Packet No.'),C('No. of Booklets'),
+               C('Foil card No.'),C('Examiner Name, College'),C('Int./Ext.'),C('Session FN'),C('Session AN')]];
+    var body=rows.map(function(r,i){
+      var id=String(r['Alloted Faculty ID']).trim();
+      var isExt=/^EXT/i.test(id);
+      var f=(isExt?R().external:R().internal).filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
+      var who=id?((f['Name of the Faculty']||r['Faculty Name']||'')+(f['College Name']?', '+f['College Name']:'')):'';
+      var ses=String(r['Valuation Session']||'').toUpperCase();
+      return [C(bb(r),{a:'c',b:1}),C(r['Course Code'],{b:1,a:'c'}),C(r['Course Name']),C(r['Bundle No.'],{a:'c'}),
+        C(r['No. of Papers'],{a:'c',b:1}),C(r['Foilcard No.'],{a:'c'}),C(who),
+        C(id?(isExt?'Ext.':'Int.'):'',{a:'c'}),C(ses==='FN'?'\u2713':'',{a:'c'}),C(ses==='AN'?'\u2713':'',{a:'c'})];
+    });
+    var books=rows.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+    var foot=[[C('Total No. of Packets',{cs:3,b:1,a:'r'}),C(rows.length,{b:1,a:'c'}),C(books,{b:1,a:'c'}),C('',{cs:5})]];
+
+    var plan={};
+    rows.forEach(function(r){
+      var d=String(r['Valuation Day']||'Day 1'), s=String(r['Valuation Session']||'FN').toUpperCase();
+      var k=d+'|'+s; (plan[k]=plan[k]||[]).push(bb(r));
+    });
+    var sumBody=[];
+    ['Day 1','Day 2','Day 3','Day 4'].forEach(function(d){
+      ['FN','AN'].forEach(function(s,si){
+        var list=plan[d+'|'+s]||[];
+        sumBody.push([C(si===0?d:'',{b:1,a:'c'}),C(s,{a:'c'}),C(list.join(', ')),C(list.length||'',{a:'c'})]);
+      });
+    });
+    return [ secTitle(headLines('Chairman Form — Answer script allotment Work Out Chart')),
+             secMeta([['**BOARD : '+b+'**','**DATE : **'+valDate()]]),
+             secTable(head,body,[10,9,24,7,8,10,18,6,4.5,4.5],foot),
+             secNote('**Total No. of Packets: '+rows.length+'        Total Booklets: '+books+'**'),
+             secTitle([{t:'Summary – Valuation Bundle: Session wise Allotment',cls:'t3'}]),
+             secTable([[C('Day'),C('Session'),C('Board Bundle Nos. (Eg. CSE-002, CSE-006…)'),C('Total No. of Packets')]],
+                      sumBody,[12,12,58,18]),
+             secNote('Over All Total Packets: '+rows.length),
+             secSigns(['','Signature of the Board Chairman: ______________________']) ];
+  });
+  return {file:'ChairmanWorkoutChart_'+boardFilter(), sheet:'Chairman', orientation:'landscape',
+          widths:[10,9,24,7,8,10,18,6,4.5,4.5], pages:pages};
+}
+
+/* ===================================================================================
+ *                        C L A I M S   E N G I N E
+ *  Valuation (A) + DA (B) + TA (T, college-wise) + Sitting fee (C) = Gross ; less TDS = Net
+ * =================================================================================== */
+function amt(v){ var x=parseFloat(String(v===undefined||v===null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(x)?0:x; }
+function money(x){ x=Math.round((x||0)*100)/100; return (x%1===0)?String(x):x.toFixed(2); }
+function inr(x){ return (Math.round((x||0)*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2}); }
+function lc(v){ return String(v||'').trim().toLowerCase(); }
+
+/* TA of an external examiner: TA chart by College Code, then College Name, then City; else the default TA */
+function taFor(ex){
+  if(!ex) return amt(CFG.TA_DEFAULT||0);
+  var code=lc(ex['College Code']), nm=lc(ex['College Name']), city=lc(ex['College City']), hit=null;
+  var by=function(f){ return TA.filter(f)[0]; };
+  if(code) hit=by(function(r){ return lc(r['College Code'])===code && String(r['TA Amount']).trim()!==''; });
+  if(!hit&&nm) hit=by(function(r){ return lc(r['College Name'])===nm && String(r['TA Amount']).trim()!==''; });
+  if(!hit&&city) hit=by(function(r){ return !lc(r['College Name']) && lc(r['College City'])===city && String(r['TA Amount']).trim()!==''; });
+  return hit?amt(hit['TA Amount']):amt(CFG.TA_DEFAULT||0);
+}
+function calcClaim(ex,bundles,isExt){
+  var rate=amt(CFG.RATE_PER_SCRIPT||20), minc=amt(CFG.MIN_CLAIM||0);
+  var scripts=bundles.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+  var days={}; bundles.forEach(function(r){ if(r['Valuation Day']) days[r['Valuation Day']]=1; });
+  var nDays=Object.keys(days).length||1, has=bundles.length>0;
+  var perDay=String(CFG.TA_BASIS||'PER_DAY').toUpperCase()!=='PER_VISIT';
+  var taRate=isExt?taFor(ex):amt(CFG.INTERNAL_TA||0);
+  var A=scripts?Math.max(scripts*rate,minc):0;
+  var B=(has&&isExt)?amt(CFG.DA_PER_DAY||0)*nDays:0;   // DA is for external examiners only; internal = 0
+  var T=has?taRate*(perDay?nDays:1):0;
+  var Cc=has?amt(CFG.SITTING_FEE||0):0;
+  var gross=A+B+T+Cc, tds=Math.round(gross*amt(CFG.TDS_PERCENT||0)/100);
+  return {scripts:scripts,bundles:bundles.length,days:nDays,perDay:perDay,taRate:taRate,A:A,B:B,T:T,C:Cc,gross:gross,tds:tds,net:gross-tds};
+}
+function claimGroups(board){
+  var rows=byBoard(R().data,board), by={}, order=[];
+  rows.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim(); if(!id) return;
+    if(!by[id]){ by[id]=[]; order.push(id); } by[id].push(r); });
+  return order.map(function(id){
+    var isExt=/^EXT/i.test(id), pool=isExt?R().external:R().internal;
+    var ex=pool.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{ID:id,'Name of the Faculty':by[id][0]['Faculty Name']};
+    var bs={}; by[id].forEach(function(r){ bs[r['Board']]=1; });
+    return {id:id,isExt:isExt,ex:ex,name:ex['Name of the Faculty']||by[id][0]['Faculty Name']||id,
+            boards:Object.keys(bs).sort().join(', '),c:calcClaim(ex,by[id],isExt)};
+  }).sort(function(a,b){ return a.id<b.id?-1:1; });
+}
+function sumClaims(list){
+  var t={n:list.length,bundles:0,scripts:0,A:0,B:0,T:0,C:0,gross:0,tds:0,net:0};
+  list.forEach(function(g){ ['bundles','scripts','A','B','T','C','gross','tds','net'].forEach(function(k){ t[k]+=g.c[k]; }); });
+  return t;
+}
+function boardStats(){
+  var set={}; R().data.forEach(function(x){ if(x['Board']) set[x['Board']]=1; });
+  return Object.keys(set).sort().map(function(b){
+    var rows=byBoard(R().data,b), g=claimGroups(b), courses={};
+    var ints=g.filter(function(x){ return !x.isExt; }), exts=g.filter(function(x){ return x.isExt; });
+    rows.forEach(function(r){ courses[r['Course Code']]=1; });
+    var ti=sumClaims(ints), te=sumClaims(exts);
+    return {board:b,courses:Object.keys(courses).length,bundles:rows.length,
+      scripts:rows.reduce(function(a,r){ return a+n(r['No. of Papers']); },0),
+      unall:rows.filter(function(r){ return !String(r['Alloted Faculty ID']).trim(); }).length,
+      ni:ints.length,ne:exts.length,ti:ti,te:te,net:ti.net+te.net};
+  });
+}
+
+var CL_W=[4,7,17,16,8,5,6,4,7,6,6,6,7,5,8];
+function claimHead(isExt){
+  return [[C('S.No.'),C('ID'),C('Name of the Examiner'),C(isExt?'College':'Department'),C('Board'),C('Bundles'),C('Scripts'),C('Days'),
+           C('Valuation (A)'),C('DA (B)'),C('TA (T)'),C('Sitting Fee (C)'),C('Gross'),C('TDS'),C('Net Payable')]];
+}
+function claimBody(list,isExt){
+  if(!list.length) return [[C('No allotted examiners for this selection.',{cs:15,a:'c'})]];
+  return list.map(function(g,i){
+    var c=g.c;
+    return [C(i+1,{a:'c'}),C(g.id,{a:'c'}),C(g.name,{b:1}),
+      C(isExt?[g.ex['College Name'],g.ex['College City']].filter(Boolean).join(', '):(g.ex['Department']||'')),
+      C(g.boards,{a:'c'}),C(c.bundles,{a:'c'}),C(c.scripts,{a:'r'}),C(c.days,{a:'c'}),
+      C(money(c.A),{a:'r'}),C(money(c.B),{a:'r'}),C(money(c.T),{a:'r'}),C(money(c.C),{a:'r'}),
+      C(money(c.gross),{a:'r'}),C(money(c.tds),{a:'r'}),C(money(c.net),{a:'r',b:1})];
+  });
+}
+function claimFoot(t,label){
+  return [[C(label,{cs:5,b:1,a:'r'}),C(t.bundles,{b:1,a:'c'}),C(t.scripts,{b:1,a:'r'}),C('',{}),
+           C(money(t.A),{b:1,a:'r'}),C(money(t.B),{b:1,a:'r'}),C(money(t.T),{b:1,a:'r'}),C(money(t.C),{b:1,a:'r'}),
+           C(money(t.gross),{b:1,a:'r'}),C(money(t.tds),{b:1,a:'r'}),C(money(t.net),{b:1,a:'r'})]];
+}
+function repClaim(kind,board){
+  var g=claimGroups(board), ints=g.filter(function(x){ return !x.isExt; }), exts=g.filter(function(x){ return x.isExt; });
+  var ttl={INT:'Internal Examiners',EXT:'External Examiners',ALL:'Internal and External Examiners'}[kind];
+  var ti=sumClaims(ints), te=sumClaims(exts), tt=sumClaims(g);
+  var sections=[secTitle(headLines('Examiner Claim Statement — '+ttl)),
+    secMeta([['**Board : **'+(board==='ALL'?'All Boards':board),'**Date : **'+(valDate()||fmtDate(new Date().toISOString()))]])];
+  if(kind!=='EXT'){
+    sections.push(secTitle([{t:(kind==='ALL'?'A. ':'')+'Internal Examiners',cls:'t3'}]));
+    sections.push(secTable(claimHead(false),claimBody(ints,false),CL_W,claimFoot(ti,'Total - Internal')));
+  }
+  if(kind!=='INT'){
+    sections.push(secTitle([{t:(kind==='ALL'?'B. ':'')+'External Examiners',cls:'t3'}]));
+    sections.push(secTable(claimHead(true),claimBody(exts,true),CL_W,claimFoot(te,'Total - External')));
+  }
+  if(kind==='ALL'){
+    var sh=[[C('Category'),C('Examiners'),C('Bundles'),C('Scripts'),C('Valuation (A)'),C('DA (B)'),C('TA (T)'),C('Sitting Fee (C)'),C('Gross'),C('TDS'),C('Net Payable')]];
+    var line=function(lbl,t,bold){ return [C(lbl,{b:bold}),C(t.n,{a:'c'}),C(t.bundles,{a:'c'}),C(t.scripts,{a:'r'}),C(money(t.A),{a:'r'}),C(money(t.B),{a:'r'}),
+      C(money(t.T),{a:'r'}),C(money(t.C),{a:'r'}),C(money(t.gross),{a:'r'}),C(money(t.tds),{a:'r'}),C(money(t.net),{a:'r',b:1})]; };
+    sections.push(secTitle([{t:'C. Consolidated Summary (Internal + External)',cls:'t3'}]));
+    sections.push(secTable(sh,[line('Internal examiners',ti),line('External examiners',te)],[16,8,8,8,10,8,8,10,9,7,10],
+      [[C('Grand Total',{b:1}),C(tt.n,{b:1,a:'c'}),C(tt.bundles,{b:1,a:'c'}),C(tt.scripts,{b:1,a:'r'}),C(money(tt.A),{b:1,a:'r'}),C(money(tt.B),{b:1,a:'r'}),
+        C(money(tt.T),{b:1,a:'r'}),C(money(tt.C),{b:1,a:'r'}),C(money(tt.gross),{b:1,a:'r'}),C(money(tt.tds),{b:1,a:'r'}),C(money(tt.net),{b:1,a:'r'})]]));
+  }
+  sections.push(secSigns(['Prepared by','Deputy Controller of Examinations','Controller of Examinations']));
+  return {file:'ClaimStatement_'+kind+'_'+board, sheet:'Claims', orientation:'landscape', fs:9, tfs:8, widths:CL_W, sections:sections};
+}
+function repClaimBoard(){
+  var st=boardStats();
+  var head=[[C('S.No.'),C('Board'),C('Courses'),C('Bundles'),C('Scripts'),C('Unallotted Bundles'),C('Internal Examiners'),C('External Examiners'),
+             C('Internal Net'),C('External Net'),C('Total Net Claim'),C('Avg. per Script')]];
+  var body=st.map(function(x,i){
+    return [C(i+1,{a:'c'}),C(x.board,{a:'c',b:1}),C(x.courses,{a:'c'}),C(x.bundles,{a:'c'}),C(x.scripts,{a:'r'}),C(x.unall,{a:'c'}),C(x.ni,{a:'c'}),C(x.ne,{a:'c'}),
+      C(money(x.ti.net),{a:'r'}),C(money(x.te.net),{a:'r'}),C(money(x.net),{a:'r',b:1}),C(x.scripts?money(x.net/x.scripts):'',{a:'r'})];
+  });
+  if(!body.length) body=[[C('No bundles generated yet.',{cs:12,a:'c'})]];
+  var tot=st.reduce(function(a,x){ a.c+=x.courses; a.b+=x.bundles; a.s+=x.scripts; a.u+=x.unall; a.i+=x.ni; a.e+=x.ne; a.ti+=x.ti.net; a.te+=x.te.net; a.n+=x.net; return a; },{c:0,b:0,s:0,u:0,i:0,e:0,ti:0,te:0,n:0});
+  var foot=[[C('Total',{cs:2,b:1,a:'r'}),C(tot.c,{b:1,a:'c'}),C(tot.b,{b:1,a:'c'}),C(tot.s,{b:1,a:'r'}),C(tot.u,{b:1,a:'c'}),C(tot.i,{b:1,a:'c'}),C(tot.e,{b:1,a:'c'}),
+             C(money(tot.ti),{b:1,a:'r'}),C(money(tot.te),{b:1,a:'r'}),C(money(tot.n),{b:1,a:'r'}),C(tot.s?money(tot.n/tot.s):'',{b:1,a:'r'})]];
+  var w=[5,9,8,8,9,10,10,10,11,11,12,9];
+  return {file:'BoardwiseClaimSummary', sheet:'BoardSummary', orientation:'landscape', widths:w,
+    sections:[secTitle(headLines('Board-wise Valuation & Claim Summary')),
+              secMeta([['**Examination : **'+(CFG.EXAM_TITLE||''),'**Date : **'+fmtDate(new Date().toISOString())]]),
+              secTable(head,body,w,foot),
+              secSigns(['Prepared by','Controller of Examinations'])]};
+}
+function repClaimInt(){ return repClaim('INT',boardFilter()); }
+function repClaimExt(){ return repClaim('EXT',boardFilter()); }
+function repClaimAll(){ return repClaim('ALL',boardFilter()); }
+
+/* ---------- report catalogue ---------- */
+var REPORTS=[
+  {k:'proforma', ic:'&#128203;', n:'Proforma', d:'Master examination proforma — counts, QP code, foilcard, dummy range and the answer-booklet break-up.', f:repProforma},
+  {k:'checklist',ic:'&#9989;',   n:'Check List', d:'Bundle-wise verification sheet with Board Bundle No., foilcard, dummy range, booklet count and the OMR tick columns.', f:repCheckList},
+  {k:'feedback', ic:'&#128172;', n:'Feedback Form', d:'External examiner feedback form, one page per examiner, pre-filled with name, board and college.', f:repFeedback},
+  {k:'issue',    ic:'&#128221;', n:'Issue Register', d:'Issue register cum claim sheet per examiner, with DA/TA and sitting fee worked out.', f:repIssueRegister},
+  {k:'tabul',    ic:'&#128290;', n:'Tabulation Valuation', d:'Board tabulation of answer scripts — Board Bundle No., foilcard, dummy numbers and the mark-correction columns.', f:repTabulation},
+  {k:'allot',    ic:'&#128100;', n:'Allotment Form', d:'External and internal evaluator allotment charts, day and session wise with script totals.', f:repAllotment},
+  {k:'circ',     ic:'&#128236;', n:'Central Valuation Circular', d:'Office circular with the course list, script count, examiner strength and the examiner annexure.', f:repCircular},
+  {k:'chair',    ic:'&#128081;', n:'Chairman Workout Chart', d:'Packet-wise work-out chart for the board chairman plus the session-wise bundle summary.', f:repChairman},
+  {k:'claimint', ic:'&#128176;', n:'Claim Statement - Internal', d:'Internal examiners: valuation, DA, TA, sitting fee, TDS and net payable, with totals.', f:repClaimInt},
+  {k:'claimext', ic:'&#127891;', n:'Claim Statement - External', d:'External examiners with college-wise TA from the TA chart, with totals.', f:repClaimExt},
+  {k:'claimall', ic:'&#129534;', n:'Claim Statement - Combined', d:'Internal and external separately with sub-totals and a consolidated grand total.', f:repClaimAll},
+  {k:'claimbrd', ic:'&#128202;', n:'Board-wise Claim Summary', d:'Scripts, unallotted bundles, examiners and claim amount for every board.', f:repClaimBoard}
+];
+function buildReportCards(){
+  document.getElementById('repGrid').innerHTML=REPORTS.map(function(r){
+    return '<div class="rep"><div class="ic">'+r.ic+'</div><h4>'+r.n+'</h4><p>'+r.d+'</p>'+
+      '<div class="fm">'+
+      '<button class="fmt" onclick="runReport(\''+r.k+'\',\'excel\')">&#128202; Excel</button>'+
+      '<button class="fmt" onclick="runReport(\''+r.k+'\',\'pdf\')">&#128196; PDF</button>'+
+      '<button class="fmt" onclick="runReport(\''+r.k+'\',\'word\')">&#128462; Word</button>'+
+      '</div></div>';
+  }).join('');
+}
+window.runReport=function(key,fmt){
+  var def=REPORTS.filter(function(r){ return r.k===key; })[0]; if(!def) return;
+  var fire=function(){
+    var spec;
+    try{ spec=def.f(); }
+    catch(e){ toast('Could not build the report: '+e.message,'err'); return; }
+    var pages=spec.pages||[spec.sections];
+    if(!pages.length){ toast('There is no data for this filter yet.','warn'); return; }
+    if(fmt==='excel') outExcel(spec);
+    else if(fmt==='word') outWord(spec);
+    else outPDF(spec);
+  };
+  if(!REPORT) loadReportData().then(fire); else fire();
+};
+
+/* ===================================================================================
+ *                         R E V A L U A T I O N
+ *  Dummy number(s) -> Board Bundle No., Foilcard No., Course Code, Course Name
+ * =================================================================================== */
+var REVAL=[], RV_FILE=[];
+function rvInputs(){
+  var t=(document.getElementById('rvText').value||'').split(/[\s,;]+/).filter(Boolean);
+  var seen={};
+  return t.concat(RV_FILE).filter(function(x){ if(seen[x]) return false; seen[x]=1; return true; });
+}
+function rvLookup(){
+  var list=rvInputs();
+  if(!list.length){ REVAL=[]; renderReval(); return; }
+  var b=document.getElementById('rvGo'); busy(b,true,'Searching');
+  api({action:'revalLookup',dummies:list}).then(function(r){
+    if(!r.ok) throw new Error(r.error); REVAL=r.rows||[]; renderReval();
+    var miss=REVAL.filter(function(x){ return !x.found; }).length;
+    if(miss) toast(miss+' dummy number(s) were not found in any bundle.','warn');
+  }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
+}
+function rvGroups(){
+  var g={}, order=[];
+  REVAL.forEach(function(x){
+    if(!x.found) return;
+    var k=x.boardBundle||('B|'+x.code+'|'+x.bundle);
+    if(!g[k]){ g[k]={bb:x.boardBundle,foil:x.foilcard,code:x.code,name:x.name,board:x.board,bundle:x.bundle,
+                     from:x.dummyFrom,to:x.dummyTo,list:[]}; order.push(k); }
+    g[k].list.push(x.dummy);
+  });
+  return order.map(function(k){ return g[k]; });
+}
+function renderReval(){
+  document.getElementById('rvCount').textContent=REVAL.length;
+  var found=REVAL.filter(function(x){ return x.found; }).length;
+  var groups=rvGroups();
+  document.getElementById('rvSummary').innerHTML=REVAL.length
+    ?'<div class="note '+(found===REVAL.length?'s':'w')+'"><b>'+found+'</b> of <b>'+REVAL.length+'</b> dummy numbers located in <b>'+groups.length+'</b> bundle(s).</div>':'';
+  var t=document.getElementById('rvTable');
+  if(!REVAL.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128260;</span>Enter or upload dummy numbers.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th class="c">#</th><th>Dummy No.</th><th>Board Bundle No.</th><th>Foilcard No.</th>'+
+    '<th>Course Code</th><th>Course Name</th><th>Board</th><th>Date</th><th class="c">Session</th></tr></thead><tbody>';
+  REVAL.forEach(function(x,i){
+    h+=x.found
+      ? '<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(x.dummy)+'</b></td><td><span class="pill inf">'+esc(x.boardBundle)+'</span></td>'+
+        '<td>'+esc(x.foilcard)+'</td><td><b>'+esc(x.code)+'</b></td><td>'+esc(x.name)+'</td><td>'+esc(x.board)+'</td>'+
+        '<td>'+fmtDate(x.date)+'</td><td class="c">'+esc(x.session)+'</td></tr>'
+      : '<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(x.dummy)+'</b></td><td colspan="7"><span class="pill err">not found in any bundle</span></td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+}
+var rvTimer; document.getElementById('rvText').oninput=function(){ clearTimeout(rvTimer); rvTimer=setTimeout(rvLookup,700); };
+document.getElementById('rvGo').onclick=rvLookup;
+document.getElementById('rvClear').onclick=function(){
+  document.getElementById('rvText').value=''; RV_FILE=[]; REVAL=[];
+  document.getElementById('rvFileMsg').innerHTML=''; renderReval(); };
+document.getElementById('rvTplX').onclick=function(){
+  xlsxDownload('Template_Revaluation.xlsx',[['Dummy Number'],['1005'],['1042'],['1190']],[18]); toast('Template downloaded.','ok'); };
+document.getElementById('rvTplC').onclick=function(){
+  csvDownload('Template_Revaluation.csv',[['Dummy Number'],['1005'],['1042'],['1190']]); toast('Template downloaded.','ok'); };
+wireDrop('dropRv','fileRv',function(file){
+  parseFile(file).then(function(rows){
+    RV_FILE=rows.map(function(r){
+      var keys=Object.keys(r);
+      var k=keys.filter(function(c){ return /dummy/i.test(c); })[0]||keys[0];
+      return String(r[k]).trim();
+    }).filter(Boolean);
+    document.getElementById('rvFileMsg').innerHTML='<div class="note s"><b>'+RV_FILE.length+'</b> dummy numbers read from <b>'+esc(file.name)+'</b>.</div>';
+    rvLookup();
+  }).catch(function(e){ document.getElementById('rvFileMsg').innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+});
+
+function repReval(){
+  var body=REVAL.map(function(x,i){
+    return [C(i+1,{a:'c'}),C(x.dummy,{a:'c',b:1}),C(x.found?x.boardBundle:'Not found',{a:'c',b:1}),C(x.foilcard||'',{a:'c'}),
+      C(x.code||'',{b:1,a:'c'}),C(x.name||''),C(x.board||'',{a:'c'}),C(x.found?fmtDate(x.date):'',{a:'c'}),C(x.session||'',{a:'c'})];
+  });
+  var head=[[C('S.No.'),C('Dummy No.'),C('Board Bundle No.'),C('Foilcard No.'),C('Course Code'),C('Course Name'),C('Board'),C('Exam Date'),C('Session')]];
+  var widths=[6,10,14,16,12,28,8,10,8];
+  var found=REVAL.filter(function(x){ return x.found; }).length;
+  var groups=rvGroups();
+  var gBody=groups.map(function(g,i){
+    return [C(i+1,{a:'c'}),C(g.bb,{a:'c',b:1}),C(g.foil,{a:'c'}),C(g.code,{a:'c',b:1}),C(g.name),
+            C(g.from+' - '+g.to,{a:'c'}),C(g.list.join(', ')),C(g.list.length,{a:'c',b:1})];
+  });
+  var gHead=[[C('S.No.'),C('Board Bundle No.'),C('Foilcard No.'),C('Course Code'),C('Course Name'),C('Bundle Dummy Range'),C('Dummy Nos. Applied'),C('Count')]];
+  var sections=[secTitle(LOGO?[{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t1'},
+                               {t:CFG.EXAM_TITLE||'',cls:'t4'},{t:'Revaluation — Dummy Number Bundle Locator',cls:'t3'}]
+                             :[{t:CFG.INSTITUTION||'',cls:'t1'},{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t2'},
+                               {t:CFG.EXAM_TITLE||'',cls:'t4'},{t:'Revaluation — Dummy Number Bundle Locator',cls:'t3'}]),
+    secMeta([['**Dummy numbers : **'+REVAL.length+'     **Located : **'+found+'     **Not found : **'+(REVAL.length-found),
+              '**Date : **'+fmtDate(new Date().toISOString())]]),
+    secTable(head,body,widths)];
+  if(groups.length){
+    sections.push(secTitle([{t:'Bundle-wise Summary',cls:'t3'}]));
+    sections.push(secTable(gHead,gBody,[6,14,16,12,24,14,24,6]));
+  }
+  sections.push(secSigns(['Prepared by','Controller of Examinations']));
+  return {file:'Revaluation_Bundle_Report',sheet:'Revaluation',orientation:'landscape',widths:[6,14,16,12,26,14,24,10,8],sections:sections};
+}
+function rvOut(fmt){
+  if(!REVAL.length){ toast('Look up some dummy numbers first.','warn'); return; }
+  var s=repReval(); if(fmt==='x') outExcel(s); else if(fmt==='w') outWord(s); else outPDF(s);
+}
+document.getElementById('rvX').onclick=function(){ rvOut('x'); };
+document.getElementById('rvP').onclick=function(){ rvOut('p'); };
+document.getElementById('rvW').onclick=function(){ rvOut('w'); };
+renderReval();
+
+/* ===================================================================================
+ *            C I R C U L A R   -   manual internal examiner count (stage 1)
+ * =================================================================================== */
+var INT_MANUAL={}; try{ INT_MANUAL=JSON.parse(localStorage.getItem('ep_intcount')||'{}')||{}; }catch(e){ INT_MANUAL={}; }
+function buildIntGrid(){
+  var box=document.getElementById('intGrid'); if(!box) return;
+  var sig=BOARDS.join('|'); if(box.dataset.sig===sig) return; box.dataset.sig=sig;
+  box.innerHTML=BOARDS.length?BOARDS.map(function(b){
+    return '<div style="flex:0 1 180px"><label class="lb">Internal examiners &mdash; '+esc(b)+'</label>'+
+      '<input class="inp" type="number" min="0" data-int="'+esc(b)+'" value="'+esc(INT_MANUAL[b]||'')+'" placeholder="0"></div>'; }).join('')
+    :'<small style="color:var(--dim)">Boards appear here once the course schedule is loaded.</small>';
+  box.querySelectorAll('[data-int]').forEach(function(el){
+    el.oninput=function(){ INT_MANUAL[el.dataset.int]=n(el.value); try{ localStorage.setItem('ep_intcount',JSON.stringify(INT_MANUAL)); }catch(e){} };
+  });
+}
+document.getElementById('rpStage').onchange=function(){ document.getElementById('intWrap').style.display=this.value==='PRE'?'':'none'; };
+
+/* ===================================================================================
+ *                         T A   C H A R T   (Settings)
+ * =================================================================================== */
+var TA_COLS=['College Code','College Name','College City','Distance (KM)','TA Amount','Remarks'];
+function renderTA(){
+  var q=(document.getElementById('taSearch').value||'').toLowerCase();
+  var rows=TA.filter(function(r){ return !q||TA_COLS.map(function(c){ return r[c]; }).join(' ').toLowerCase().indexOf(q)>-1; });
+  document.getElementById('taCount').textContent=rows.length+' / '+TA.length;
+  var t=document.getElementById('taTable');
+  if(!rows.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128663;</span>No colleges in the TA chart yet. Upload it, add one, or pull the colleges of your external examiners.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th style="width:34px"><input type="checkbox" id="taAll"></th>'+
+    TA_COLS.map(function(c){ return '<th'+((c==='TA Amount'||c==='Distance (KM)')?' class="n"':'')+'>'+c+'</th>'; }).join('')+'<th class="c">Edit</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    h+='<tr><td><input type="checkbox" class="taChk" data-row="'+r._row+'"></td><td>'+esc(r['College Code'])+'</td><td><b>'+esc(r['College Name'])+'</b></td>'+
+      '<td>'+esc(r['College City'])+'</td><td class="n">'+esc(r['Distance (KM)'])+'</td>'+
+      '<td class="n">'+(String(r['TA Amount']).trim()===''?'<span class="pill warn">not set</span>':'<b>'+esc(r['TA Amount'])+'</b>')+'</td>'+
+      '<td>'+esc(r['Remarks'])+'</td><td class="c"><button class="btn g sm" onclick="editTa('+r._row+')">&#9998;</button></td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+  var all=document.getElementById('taAll');
+  if(all) all.onclick=function(){ document.querySelectorAll('.taChk').forEach(function(c){ c.checked=all.checked; }); };
+}
+document.getElementById('taSearch').oninput=renderTA;
+function taForm(r){
+  r=r||{};
+  var f=function(lb,id,val,ph){ return '<div style="flex:1 1 170px"><label class="lb">'+lb+'</label><input class="inp" id="ta_'+id+'" value="'+esc(val||'')+'" placeholder="'+esc(ph||'')+'"></div>'; };
+  return '<div class="fr">'+f('College Code','code',r['College Code'])+f('College Name *','name',r['College Name'])+'</div>'+
+    '<div class="fr" style="margin-top:10px">'+f('College City','city',r['College City'])+f('Distance (KM)','km',r['Distance (KM)'])+f('TA Amount (Rs.)','amount',r['TA Amount'])+'</div>'+
+    '<div class="fr" style="margin-top:10px">'+f('Remarks','remarks',r['Remarks'])+'</div>';
+}
+function saveTa(_row){
+  var g=function(i){ return document.getElementById('ta_'+i).value; };
+  var row={_row:_row||'',code:g('code'),name:g('name'),city:g('city'),km:g('km'),amount:g('amount'),remarks:g('remarks')};
+  if(!row.name.trim()&&!row.code.trim()){ toast('College name or code is required.','err'); return false; }
+  api({action:'taSave',row:row}).then(function(r){
+    if(!r.ok) throw new Error(r.error); TA=r.rows||[]; renderTA(); REPORT=null; toast('TA saved.','ok');
+  }).catch(function(e){ toast(e.message,'err'); });
+}
+document.getElementById('taAdd').onclick=function(){
+  modal('Add college TA','The amount is applied to every external examiner of this college.',taForm(null),
+    [{t:'Cancel',c:'g'},{t:'Save',c:'',fn:function(){ return saveTa(''); }}]); };
+window.editTa=function(row){
+  var r=TA.filter(function(x){ return x._row===row; })[0]; if(!r) return;
+  modal('Edit TA - '+esc(r['College Name']||r['College Code']),'',taForm(r),
+    [{t:'Cancel',c:'g'},{t:'Save',c:'',fn:function(){ return saveTa(row); }}]); };
+document.getElementById('taDel').onclick=function(){
+  var rows=[].slice.call(document.querySelectorAll('.taChk:checked')).map(function(c){ return n(c.dataset.row); });
+  if(!rows.length){ toast('Select at least one college.','warn'); return; }
+  modal('Delete colleges','Remove <b>'+rows.length+'</b> college(s) from the TA chart?','',
+    [{t:'Cancel',c:'g'},{t:'Delete',c:'dg',fn:function(){
+      api({action:'taDelete',rowsIndex:rows}).then(function(r){
+        if(!r.ok) throw new Error(r.error); TA=r.rows||[]; renderTA(); REPORT=null; toast('Deleted.','ok');
+      }).catch(function(e){ toast(e.message,'err'); }); }}]);
+};
+var TA_SAMPLE=[TA_COLS,['1234','PSNA College of Engineering','Dindigul','65','800','Sample row - replace'],['2345','Government College of Technology','Coimbatore','210','1500','']];
+document.getElementById('taTplX').onclick=function(){ xlsxDownload('Template_TAChart.xlsx',TA_SAMPLE,[14,38,16,14,12,24]); toast('Template downloaded.','ok'); };
+document.getElementById('taTplC').onclick=function(){ csvDownload('Template_TAChart.csv',TA_SAMPLE); toast('Template downloaded.','ok'); };
+document.getElementById('taExport').onclick=function(){
+  csvDownload('TAChart.csv',[TA_COLS].concat(TA.map(function(r){ return TA_COLS.map(function(c){ return r[c]; }); }))); toast('Exported.','ok'); };
+wireDrop('dropTa','fileTa',function(file){
+  var box=document.getElementById('taUpMsg');
+  box.innerHTML='<div class="note i">Reading <b>'+esc(file.name)+'</b>&hellip;</div>';
+  parseFile(file).then(function(rows){
+    if(!rows.length) throw new Error('The sheet has no data rows.');
+    box.innerHTML='';
+    modal('Upload '+rows.length+' colleges','Append adds new colleges and skips ones already listed. Replace clears the TA chart first.','',
+      [{t:'Cancel',c:'g'},
+       {t:'Replace all',c:'dg',fn:function(){ sendTa(rows,'replace',box); }},
+       {t:'Append',c:'',fn:function(){ sendTa(rows,'append',box); }}]);
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+});
+function sendTa(rows,mode,box){
+  box.innerHTML='<div class="note i"><span class="spin2"></span> Uploading&hellip;</div>';
+  api({action:'taBulk',rows:rows,mode:mode}).then(function(r){
+    if(!r.ok) throw new Error(r.error||'Upload failed.');
+    TA=r.rows||[]; renderTA(); REPORT=null;
+    box.innerHTML='<div class="note s"><b>'+r.inserted+'</b> rows processed ('+mode+').</div>'; toast('TA chart updated.','ok');
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+}
+document.getElementById('taSync').onclick=function(){
+  var have={}, seen={}, add=[];
+  TA.forEach(function(r){ have[lc(r['College Code'])+'|'+lc(r['College Name'])]=1; });
+  EXAM.EXTERNAL.forEach(function(e){
+    var k=lc(e['College Code'])+'|'+lc(e['College Name']);
+    if(k==='|'||have[k]||seen[k]) return; seen[k]=1;
+    add.push({'College Code':e['College Code'],'College Name':e['College Name'],'College City':e['College City'],'Distance (KM)':'','TA Amount':'','Remarks':''});
+  });
+  if(!add.length){ toast('Every external examiner college is already in the TA chart.','ok'); return; }
+  api({action:'taBulk',rows:add,mode:'append'}).then(function(r){
+    if(!r.ok) throw new Error(r.error); TA=r.rows||[]; renderTA();
+    toast(add.length+' college(s) added. Now fill in their TA amounts.','ok');
+  }).catch(function(e){ toast(e.message,'err'); });
+};
+
+/* ===================================================================================
+ *                       C L A I M S   &   A N A L Y S I S   (page)
+ * =================================================================================== */
+function runSpec(spec,fmt){ if(fmt==='excel') outExcel(spec); else if(fmt==='word') outWord(spec); else outPDF(spec); }
+window.claimOut=function(kind,fmt){
+  if(!REPORT){ loadReportData().then(function(){ claimOut(kind,fmt); }); return; }
+  var b=document.getElementById('clBoard').value||'ALL';
+  runSpec(kind==='BOARD'?repClaimBoard():repClaim(kind,b),fmt);
+};
+function loadClaims(){
+  if(!REPORT) loadReportData().then(renderClaims); else renderClaims();
+}
+function renderClaims(){
+  var b=document.getElementById('clBoard').value||'ALL';
+  var g=claimGroups(b), ints=g.filter(function(x){ return !x.isExt; }), exts=g.filter(function(x){ return x.isExt; });
+  var ti=sumClaims(ints), te=sumClaims(exts), tt=sumClaims(g);
+  var rows=byBoard(R().data,b);
+  var scripts=rows.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+  var unall=rows.filter(function(r){ return !String(r['Alloted Faculty ID']).trim(); });
+  var missTA=[]; exts.forEach(function(x){ if(x.c.taRate===0) missTA.push(x.name); });
+  var msg='';
+  if(String(CFG.DA_TA_SPLIT_CONFIRMED||'NO').toUpperCase()!=='YES') msg+='<div class="note w"><b>DA / TA not confirmed.</b> Make sure DA per day is DA only (TA is separate), then press Save configuration in Settings.</div>';
+  if(!rows.length) msg+='<div class="note w">No bundles generated yet &mdash; generate the bundles first.</div>';
+  if(unall.length) msg+='<div class="note w"><b>'+unall.length+'</b> bundle(s) are still unallotted, so their claims are not included yet.</div>';
+  if(missTA.length) msg+='<div class="note w"><b>'+missTA.length+'</b> external examiner(s) have no TA amount (college not in the TA chart and no default TA): '+esc(missTA.slice(0,6).join(', '))+(missTA.length>6?' &hellip;':'')+'. Add them under Settings &rarr; TA chart.</div>';
+  document.getElementById('clMsg').innerHTML=msg;
+
+  document.getElementById('clStats').innerHTML=
+    stat('Bundles',rows.length,unall.length+' unallotted')+
+    stat('Scripts allotted',tt.scripts.toLocaleString('en-IN'),'of '+scripts.toLocaleString('en-IN')+' in the data')+
+    stat('Internal claim','Rs. '+inr(ti.net),ints.length+' examiner(s)')+
+    stat('External claim','Rs. '+inr(te.net),exts.length+' examiner(s)')+
+    stat('Combined claim','Rs. '+inr(tt.net),'gross Rs. '+inr(tt.gross))+
+    stat('TA payable','Rs. '+inr(tt.T),'external Rs. '+inr(te.T))+
+    stat('DA + sitting fee','Rs. '+inr(tt.B+tt.C),'DA Rs. '+inr(tt.B)+' + sitting Rs. '+inr(tt.C))+
+    stat('Average per script',tt.scripts?'Rs. '+inr(tt.net/tt.scripts):'—','net claim / scripts valued');
+
+  var sumRow=function(l,t,bold){ return '<tr'+(bold?' style="font-weight:700;background:var(--hov)"':'')+'><td>'+l+'</td><td class="n">'+t.n+'</td><td class="n">'+t.bundles+'</td><td class="n">'+t.scripts+
+    '</td><td class="n">'+inr(t.A)+'</td><td class="n">'+inr(t.B)+'</td><td class="n">'+inr(t.T)+'</td><td class="n">'+inr(t.C)+'</td><td class="n">'+inr(t.gross)+
+    '</td><td class="n">'+inr(t.tds)+'</td><td class="n"><b>'+inr(t.net)+'</b></td></tr>'; };
+  document.getElementById('clSummary').innerHTML='<thead><tr><th>Category</th><th class="n">Examiners</th><th class="n">Bundles</th><th class="n">Scripts</th><th class="n">Valuation (A)</th>'+
+    '<th class="n">DA (B)</th><th class="n">TA (T)</th><th class="n">Sitting (C)</th><th class="n">Gross</th><th class="n">TDS</th><th class="n">Net payable</th></tr></thead><tbody>'+
+    sumRow('Internal',ti)+sumRow('External',te)+sumRow('Combined',tt,true)+'</tbody>';
+
+  var st=boardStats();
+  document.getElementById('clBoardTbl').innerHTML=st.length?'<thead><tr><th>Board</th><th class="n">Courses</th><th class="n">Bundles</th><th class="n">Scripts</th><th class="n">Unallotted</th>'+
+    '<th class="n">Internal</th><th class="n">External</th><th class="n">Internal net</th><th class="n">External net</th><th class="n">Total net</th><th class="n">Per script</th></tr></thead><tbody>'+
+    st.map(function(x){ return '<tr><td><span class="pill inf">'+esc(x.board)+'</span></td><td class="n">'+x.courses+'</td><td class="n">'+x.bundles+'</td><td class="n">'+x.scripts+
+      '</td><td class="n">'+(x.unall?'<span class="pill warn">'+x.unall+'</span>':'0')+'</td><td class="n">'+x.ni+'</td><td class="n">'+x.ne+'</td><td class="n">'+inr(x.ti.net)+
+      '</td><td class="n">'+inr(x.te.net)+'</td><td class="n"><b>'+inr(x.net)+'</b></td><td class="n">'+(x.scripts?inr(x.net/x.scripts):'—')+'</td></tr>'; }).join('')+'</tbody>'
+    :'<tbody><tr><td class="empty"><span class="e">&#128202;</span>No bundles yet.</td></tr></tbody>';
+
+  var col={}, corder=[];
+  exts.forEach(function(x){
+    var nm=x.ex['College Name']||'(college not given)', k=lc(x.ex['College Code'])+'|'+lc(nm);
+    if(!col[k]){ col[k]={name:nm,city:x.ex['College City']||'',rate:x.c.taRate,n:0,days:0,ta:0}; corder.push(k); }
+    col[k].n++; col[k].days+=x.c.days; col[k].ta+=x.c.T;
+  });
+  document.getElementById('clCollege').innerHTML=corder.length?'<thead><tr><th>College</th><th>City</th><th class="n">Examiners</th><th class="n">Days</th><th class="n">TA rate</th><th class="n">TA total</th></tr></thead><tbody>'+
+    corder.map(function(k){ var o=col[k]; return '<tr><td><b>'+esc(o.name)+'</b></td><td>'+esc(o.city)+'</td><td class="n">'+o.n+'</td><td class="n">'+o.days+'</td><td class="n">'+
+      (o.rate?inr(o.rate):'<span class="pill warn">not set</span>')+'</td><td class="n"><b>'+inr(o.ta)+'</b></td></tr>'; }).join('')+'</tbody>'
+    :'<tbody><tr><td class="empty"><span class="e">&#127979;</span>No external examiners allotted yet.</td></tr></tbody>';
+
+  var ty=document.getElementById('clType').value, list=ty==='INT'?ints:(ty==='EXT'?exts:g);
+  document.getElementById('clExam').innerHTML=list.length?'<thead><tr><th>ID</th><th>Name</th><th>College / Dept.</th><th>Board</th><th class="n">Bundles</th><th class="n">Scripts</th><th class="n">Days</th>'+
+    '<th class="n">Valuation</th><th class="n">DA</th><th class="n">TA</th><th class="n">Sitting</th><th class="n">Gross</th><th class="n">TDS</th><th class="n">Net</th></tr></thead><tbody>'+
+    list.map(function(x){ var c=x.c; return '<tr><td><span class="pill '+(x.isExt?'warn':'inf')+'">'+esc(x.id)+'</span></td><td><b>'+esc(x.name)+'</b></td><td>'+
+      esc(x.isExt?(x.ex['College Name']||''):(x.ex['Department']||''))+'</td><td>'+esc(x.boards)+'</td><td class="n">'+c.bundles+'</td><td class="n">'+c.scripts+'</td><td class="n">'+c.days+
+      '</td><td class="n">'+inr(c.A)+'</td><td class="n">'+inr(c.B)+'</td><td class="n">'+inr(c.T)+'</td><td class="n">'+inr(c.C)+'</td><td class="n">'+inr(c.gross)+
+      '</td><td class="n">'+inr(c.tds)+'</td><td class="n"><b>'+inr(c.net)+'</b></td></tr>'; }).join('')+'</tbody>'
+    :'<tbody><tr><td class="empty"><span class="e">&#128101;</span>No allotted examiners for this selection.</td></tr></tbody>';
+}
+document.getElementById('clBoard').onchange=function(){ if(REPORT) renderClaims(); };
+document.getElementById('clType').onchange=function(){ if(REPORT) renderClaims(); };
+document.getElementById('clRefresh').onclick=function(){ REPORT=null; loadClaims(); };
+
+/* =============================== GO =============================== */
+boot();
+</script>
+</body>
+</html>
