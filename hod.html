@@ -168,7 +168,6 @@ table.t tr.un td{background:rgba(251,191,36,.07)}
   <h6>Valuation</h6>
   <div class="nv" data-v="courses"><span class="e">&#128218;</span>Course summary<span class="cnt" id="cCourse">0</span></div>
   <div class="nv" data-v="allot"><span class="e">&#128203;</span>Bundle allotment<span class="cnt" id="cBundle">0</span></div>
-  <div class="nv" data-v="plan"><span class="e">&#128197;</span>Session planner</div>
   <h6>Examiners</h6>
   <div class="nv" data-v="ext"><span class="e">&#128222;</span>External examiners<span class="cnt" id="cExt">0</span></div>
   <div class="nv" data-v="int"><span class="e">&#128101;</span>Internal faculty<span class="cnt" id="cInt">0</span></div>
@@ -191,7 +190,6 @@ table.t tr.un td{background:rgba(251,191,36,.07)}
         <button class="btn g sm" data-go="allot">&#128203; Allot bundles</button>
         <button class="btn g sm" data-go="courses">&#128218; Course totals</button>
         <button class="btn g sm" data-go="ext">&#128222; Call an examiner</button>
-        <button class="btn g sm" data-go="plan">&#128197; Plan sessions</button>
       </div>
       <div id="unBox" style="margin-top:16px"></div></div>
   </div>
@@ -213,14 +211,20 @@ table.t tr.un td{background:rgba(251,191,36,.07)}
 <!-- ============ BUNDLE ALLOTMENT ============ -->
 <section class="view" id="v-allot">
   <div class="head"><div><h2>Bundle allotment</h2>
-    <p>Pick Internal or External for each bundle. For an internal valuator choose the department first, then the faculty.
-       The faculty ID is written straight back into the Data sheet.</p></div></div>
+    <p>For each bundle pick Internal or External, the valuator, and the valuation Day and Session in one step.
+       For an internal valuator choose the department first, then the faculty.
+       Everything is written straight back into the Data sheet.</p></div></div>
 
   <div class="card">
     <div class="fr">
       <div><label class="lb">Course</label><select class="inp" id="alCourse"><option value="">All courses</option></select></div>
       <div><label class="lb">Status</label><select class="inp" id="alStatus">
         <option value="">All bundles</option><option value="un">Unallotted only</option><option value="as">Allotted only</option></select></div>
+      <div><label class="lb">Day</label><select class="inp" id="alDayF">
+        <option value="">All days</option><option>Day 1</option><option>Day 2</option><option>Day 3</option><option>Day 4</option>
+        <option value="__none">Not planned</option></select></div>
+      <div><label class="lb">Session</label><select class="inp" id="alSesF">
+        <option value="">All</option><option>FN</option><option>AN</option></select></div>
       <div class="srch" style="flex:2 1 200px"><label class="lb">Search</label><input class="inp" id="alSearch" placeholder="Course, bundle, faculty"></div>
       <div style="flex:0 0 auto"><label class="lb">&nbsp;</label>
         <div class="btns">
@@ -234,26 +238,6 @@ table.t tr.un td{background:rgba(251,191,36,.07)}
   <div class="card">
     <h3>&#128230; Bundles <span class="pill dim" id="alCount">0</span></h3>
     <div class="tw"><table class="t" id="alTable"></table></div>
-  </div>
-</section>
-
-<!-- ============ SESSION PLANNER ============ -->
-<section class="view" id="v-plan">
-  <div class="head"><div><h2>Session planner</h2>
-    <p>Assign each bundle to a valuation day and session. This feeds the session-wise summary on the
-       Chairman work-out chart and the allotment chart.</p></div></div>
-  <div class="card">
-    <div class="fr">
-      <div><label class="lb">Apply to</label><select class="inp" id="plScope">
-        <option value="sel">Selected bundles</option><option value="un">All unplanned bundles</option></select></div>
-      <div><label class="lb">Day</label><select class="inp" id="plDay"><option>Day 1</option><option>Day 2</option><option>Day 3</option><option>Day 4</option></select></div>
-      <div><label class="lb">Session</label><select class="inp" id="plSes"><option>FN</option><option>AN</option></select></div>
-      <div style="flex:0 0 auto"><label class="lb">&nbsp;</label><button class="btn" id="plApply">&#9989; Apply</button></div>
-    </div>
-  </div>
-  <div class="card">
-    <h3>&#128197; Planning grid</h3>
-    <div class="tw"><table class="t" id="plTable"></table></div>
   </div>
 </section>
 
@@ -378,7 +362,6 @@ function go(v){
   document.getElementById('nav').classList.remove('open');
   document.getElementById('scrim').classList.remove('on');
   window.scrollTo({top:0,behavior:'smooth'});
-  if(v==='plan') renderPlan();
 }
 document.querySelectorAll('.nv').forEach(function(el){ el.onclick=function(){ go(el.dataset.v); }; });
 document.querySelectorAll('[data-go]').forEach(function(el){ el.onclick=function(){ go(el.dataset.go); }; });
@@ -422,6 +405,7 @@ function renderAll(){
   document.getElementById('cExt').textContent=EXT.filter(onBoard).length;
   document.getElementById('cInt').textContent=INT.length;
   renderStats(); renderCourses(); fillCourseFilter(); renderAllot(); renderExt(); renderInt();
+  updateDirty();
 }
 function onBoard(e){ return !BOARD || String(e['Board']).trim().toUpperCase()===BOARD.toUpperCase(); }
 
@@ -490,7 +474,7 @@ document.getElementById('csExport').onclick=function(){
   toast('Course summary exported.','ok');
 };
 
-/* =============================== BUNDLE ALLOTMENT =============================== */
+/* =============================== BUNDLE ALLOTMENT (with Day + Session) =============================== */
 function fillCourseFilter(){
   var sel=document.getElementById('alCourse'), cur=sel.value;
   sel.innerHTML='<option value="">All courses</option>'+COURSES.map(function(c){
@@ -502,19 +486,48 @@ function fillCourseFilter(){
     return '<option>'+esc(d)+'</option>'; }).join('');
   dsel.value=dcur;
 }
+
+var DAYS=['Day 1','Day 2','Day 3','Day 4'], SESS=['FN','AN'];
+
+function curTypeOf(r){
+  var id=String(r['Alloted Faculty ID']||'').trim();
+  return /^EXT/i.test(id)?'EXTERNAL':(id?'INTERNAL':'');
+}
+/* merged view of a bundle: saved values overridden by unsaved edits */
+function eff(r){
+  var d=DIRTY[r._row]||{};
+  return {
+    type: d.facultyType!==undefined?d.facultyType:curTypeOf(r),
+    id:   d.facultyId!==undefined?d.facultyId:String(r['Alloted Faculty ID']||'').trim(),
+    dept: d.dept!==undefined?d.dept:(r['Faculty Department']||''),
+    day:  d.day!==undefined?d.day:String(r['Valuation Day']||'').trim(),
+    ses:  d.valSession!==undefined?d.valSession:String(r['Valuation Session']||'').trim()
+  };
+}
+function findRow(row){ for(var i=0;i<DATA.length;i++) if(DATA[i]._row===row) return DATA[i]; return null; }
+
 function filteredBundles(){
   var c=document.getElementById('alCourse').value;
   var st=document.getElementById('alStatus').value;
+  var dy=document.getElementById('alDayF').value;
+  var sf=document.getElementById('alSesF').value;
   var q=(document.getElementById('alSearch').value||'').toLowerCase();
   return DATA.filter(function(r){
     if(c && r['Course Code']!==c) return false;
-    var has=!!String(r['Alloted Faculty ID']).trim() || !!(DIRTY[r._row]&&DIRTY[r._row].facultyId);
-    if(st==='un' && has) return false;
-    if(st==='as' && !has) return false;
+    var e=eff(r);
+    if(st==='un' && e.id) return false;
+    if(st==='as' && !e.id) return false;
+    if(dy==='__none'){ if(e.day) return false; }
+    else if(dy && e.day!==dy) return false;
+    if(sf && e.ses!==sf) return false;
     if(!q) return true;
     return (r['Course Code']+' '+r['Course Name']+' '+r['Bundle No.']+' '+(r['Faculty Name']||'')+' '+
             (r['Alloted Faculty ID']||'')).toLowerCase().indexOf(q)>-1;
   });
+}
+function optList(arr,cur,blank){
+  return '<option value="">'+blank+'</option>'+arr.map(function(x){
+    return '<option'+(x===cur?' selected':'')+'>'+esc(x)+'</option>'; }).join('');
 }
 function renderAllot(){
   var rows=filteredBundles();
@@ -525,14 +538,11 @@ function renderAllot(){
   var h='<thead><tr><th style="width:32px"><input type="checkbox" id="alAll"></th><th class="c">#</th>'+
     '<th>Course</th><th class="c">Bundle</th><th class="n">Foilcard</th><th class="c">Dummy range</th>'+
     '<th class="n">Papers</th><th style="min-width:110px">Type</th><th style="min-width:190px">Valuator</th>'+
+    '<th style="min-width:95px">Day</th><th style="min-width:80px">Session</th>'+
     '<th class="c">Status</th></tr></thead><tbody>';
   rows.forEach(function(r){
-    var d=DIRTY[r._row]||{};
-    var curType=d.facultyType!==undefined?d.facultyType:(/^EXT/i.test(String(r['Alloted Faculty ID']))?'EXTERNAL':
-      (String(r['Alloted Faculty ID']).trim()?'INTERNAL':''));
-    var curId=d.facultyId!==undefined?d.facultyId:String(r['Alloted Faculty ID']||'');
-    var curDept=d.dept!==undefined?d.dept:(r['Faculty Department']||'');
-    h+='<tr class="'+(curId?'':'un')+'" data-row="'+r._row+'">'+
+    var e=eff(r);
+    h+='<tr class="'+(e.id?'':'un')+'" data-row="'+r._row+'">'+
       '<td><input type="checkbox" class="alChk" data-row="'+r._row+'"></td>'+
       '<td class="c">'+esc(r['S.No.'])+'</td>'+
       '<td style="min-width:185px"><b>'+esc(r['Course Code'])+'</b>'+
@@ -543,16 +553,25 @@ function renderAllot(){
       '<td class="n"><b>'+esc(r['No. of Papers'])+'</b></td>'+
       '<td><select class="inp" data-k="type" style="padding:6px 8px;font-size:12px">'+
         '<option value="">&mdash;</option>'+
-        '<option value="INTERNAL"'+(curType==='INTERNAL'?' selected':'')+'>Internal</option>'+
-        '<option value="EXTERNAL"'+(curType==='EXTERNAL'?' selected':'')+'>External</option></select></td>'+
-      '<td data-cell="fac">'+facultyCell(curType,curId,curDept)+'</td>'+
-      '<td class="c" data-cell="st">'+(DIRTY[r._row]?'<span class="pill warn">unsaved</span>':
-        (curId?'<span class="pill ok">'+esc(curId)+'</span>':'<span class="pill dim">open</span>'))+'</td></tr>';
+        '<option value="INTERNAL"'+(e.type==='INTERNAL'?' selected':'')+'>Internal</option>'+
+        '<option value="EXTERNAL"'+(e.type==='EXTERNAL'?' selected':'')+'>External</option></select></td>'+
+      '<td data-cell="fac">'+facultyCell(e.type,e.id,e.dept)+'</td>'+
+      '<td><select class="inp" data-k="day" style="padding:6px 8px;font-size:12px">'+optList(DAYS,e.day,'&mdash;')+'</select></td>'+
+      '<td><select class="inp" data-k="ses" style="padding:6px 8px;font-size:12px">'+optList(SESS,e.ses,'&mdash;')+'</select></td>'+
+      '<td class="c" data-cell="st">'+rowStatus(r)+'</td></tr>';
   });
   t.innerHTML=h+'</tbody>';
   wireAllotRows();
   var all=document.getElementById('alAll');
   if(all) all.onclick=function(){ document.querySelectorAll('.alChk').forEach(function(c){ c.checked=all.checked; }); };
+}
+function rowStatus(r){
+  var e=eff(r);
+  if(DIRTY[r._row]) return '<span class="pill warn">unsaved</span>';
+  if(e.id) return '<span class="pill ok">'+esc(e.id)+'</span>'+
+    (e.day&&e.ses?'<div style="font-size:10.5px;color:var(--faint);margin-top:3px">'+esc(e.day)+' &middot; '+esc(e.ses)+'</div>'
+                 :'<div style="font-size:10.5px;color:var(--warn);margin-top:3px">no day/session</div>');
+  return '<span class="pill dim">open</span>';
 }
 function facultyCell(type,id,dept){
   if(type==='EXTERNAL'){
@@ -580,7 +599,7 @@ function wireAllotRows(){
     var mark=function(obj){
       DIRTY[row]=Object.assign({},DIRTY[row]||{},obj);
       tr.querySelector('[data-cell="st"]').innerHTML='<span class="pill warn">unsaved</span>';
-      tr.classList.toggle('un',!DIRTY[row].facultyId);
+      tr.classList.toggle('un',!eff(findRow(row)).id);
       updateDirty();
     };
     var tsel=tr.querySelector('[data-k="type"]');
@@ -591,7 +610,7 @@ function wireAllotRows(){
     };
     var dsel=tr.querySelector('[data-k="dept"]');
     if(dsel) dsel.onchange=function(){
-      var d=DIRTY[row]||{}; mark({dept:dsel.value,facultyId:''});
+      mark({facultyType:'INTERNAL',dept:dsel.value,facultyId:''});
       tr.querySelector('[data-cell="fac"]').innerHTML=facultyCell('INTERNAL','',dsel.value);
       wireAllotRows();
     };
@@ -600,6 +619,10 @@ function wireAllotRows(){
       var ty=(tr.querySelector('[data-k="type"]')||{}).value||'';
       mark({facultyType:ty,facultyId:fsel.value});
     };
+    var ysel=tr.querySelector('[data-k="day"]');
+    if(ysel) ysel.onchange=function(){ mark({day:ysel.value}); };
+    var ssel=tr.querySelector('[data-k="ses"]');
+    if(ssel) ssel.onchange=function(){ mark({valSession:ssel.value}); };
   });
 }
 function updateDirty(){
@@ -607,26 +630,50 @@ function updateDirty(){
   document.getElementById('alDirty').textContent=k?('('+k+')'):'';
   document.getElementById('alSave').disabled=!k;
 }
-['alCourse','alStatus','alSearch'].forEach(function(id){
+['alCourse','alStatus','alDayF','alSesF','alSearch'].forEach(function(id){
   document.getElementById(id).oninput=renderAllot; document.getElementById(id).onchange=renderAllot; });
 
 document.getElementById('alSave').onclick=function(){
-  var items=Object.keys(DIRTY).map(function(row){
-    var d=DIRTY[row];
-    return {rowIndex:n(row),facultyType:d.facultyType||'',facultyId:d.facultyId||''};
+  var items=Object.keys(DIRTY).map(function(k){
+    var r=findRow(n(k)); var e=eff(r);
+    return {rowIndex:n(k),facultyType:e.type,facultyId:e.id,day:e.day,valSession:e.ses,
+            _label:r['Course Code']+' / '+r['Bundle No.']};
   });
-  var bad=items.filter(function(i){ return i.facultyType && !i.facultyId; });
-  if(bad.length){
-    modal('Incomplete rows',bad.length+' bundle(s) have a type chosen but no valuator selected. '+
-      'Save the rest and come back, or pick the valuator first.','',
-      [{t:'Go back',c:'g'},{t:'Save the complete ones',c:'',fn:function(){ doSave(items.filter(function(i){
-        return !i.facultyType || i.facultyId; })); }}]);
+  /* conflict guards: valuator needs type, day and session */
+  var noFac=items.filter(function(i){ return i.facultyType && !i.facultyId; });
+  var noPlan=items.filter(function(i){ return i.facultyId && (!i.day || !i.valSession); });
+  var okItems=items.filter(function(i){
+    return !(i.facultyType && !i.facultyId) && !(i.facultyId && (!i.day || !i.valSession)); });
+  if(noFac.length||noPlan.length){
+    var msg='';
+    if(noFac.length) msg+='<b>'+noFac.length+'</b> bundle(s) have a type but no valuator.<br>';
+    if(noPlan.length) msg+='<b>'+noPlan.length+'</b> bundle(s) have a valuator but no Day / Session.<br>';
+    msg+='<div style="margin-top:8px;font-size:12px;color:var(--faint)">'+
+      noFac.concat(noPlan).slice(0,8).map(function(i){ return esc(i._label); }).join(', ')+'</div>';
+    modal('Incomplete rows','Every allotted bundle needs a valuator, a day and a session.',msg,
+      [{t:'Go back',c:'g'}].concat(okItems.length?[{t:'Save the complete ones ('+okItems.length+')',c:'',fn:function(){ doSave(okItems); }}]:[]));
     return;
   }
-  doSave(items);
+  /* soft warning: same valuator, same Day+Session, different courses */
+  var slot={};
+  DATA.forEach(function(r){
+    var e=eff(r); if(!e.id||!e.day||!e.ses) return;
+    var k=e.id+'|'+e.day+'|'+e.ses; (slot[k]=slot[k]||{}); slot[k][r['Course Code']]=1; });
+  var clash=Object.keys(slot).filter(function(k){ return Object.keys(slot[k]).length>1; });
+  if(clash.length){
+    modal('Check valuator load','The same valuator is placed on more than one course in the same Day / Session:',
+      '<ul style="padding-left:18px;font-size:12.5px">'+clash.slice(0,8).map(function(k){
+        var p=k.split('|'); return '<li>'+esc(p[0])+' &middot; '+esc(p[1])+' '+esc(p[2])+' &mdash; '+
+          Object.keys(slot[k]).map(esc).join(', ')+'</li>'; }).join('')+'</ul>',
+      [{t:'Review',c:'g'},{t:'Save anyway',c:'',fn:function(){ doSave(okItems); }}]);
+    return;
+  }
+  doSave(okItems);
 };
 function doSave(items){
   if(!items.length){ toast('Nothing to save.','warn'); return; }
+  items=items.map(function(i){ return {rowIndex:i.rowIndex,facultyType:i.facultyType||'',
+    facultyId:i.facultyId||'',day:i.day||'',valSession:i.valSession||''}; });
   var b=document.getElementById('alSave'); busy(b,true,'Saving');
   api({action:'assignBulk',items:items}).then(function(r){
     if(!r.ok) throw new Error(r.error);
@@ -638,58 +685,37 @@ function doSave(items){
 }
 document.getElementById('alBulk').onclick=function(){
   var sel=[].slice.call(document.querySelectorAll('.alChk:checked')).map(function(c){ return n(c.dataset.row); });
-  var scope=sel.length?sel:filteredBundles().filter(function(r){ return !String(r['Alloted Faculty ID']).trim(); })
-    .map(function(r){ return r._row; });
+  var scope=sel.length?sel:filteredBundles().filter(function(r){ return !eff(r).id; }).map(function(r){ return r._row; });
   if(!scope.length){ toast('Nothing selected and nothing unallotted in view.','warn'); return; }
   var extOpts=EXT.filter(onBoard).map(function(f){ return '<option value="EXTERNAL|'+esc(f['ID'])+'">EXT &middot; '+
     esc(f['ID'])+' &mdash; '+esc(f['Name of the Faculty'])+'</option>'; }).join('');
   var intOpts=INT.map(function(f){ return '<option value="INTERNAL|'+esc(f['ID'])+'">INT &middot; '+
     esc(f['ID'])+' &mdash; '+esc(f['Name of the Faculty'])+' ('+esc(f['Department'])+')</option>'; }).join('');
   modal('Bulk assign',(sel.length?('<b>'+sel.length+'</b> selected bundle(s)'):
-      ('all <b>'+scope.length+'</b> unallotted bundle(s) in the current view'))+' will go to one valuator.',
+      ('all <b>'+scope.length+'</b> unallotted bundle(s) in the current view'))+
+      ' will get the valuator, day and session chosen below. Leave a field blank to keep the current value.',
     '<label class="lb">Valuator</label><select class="inp" id="bulkFac">'+
-    '<option value="">Select a valuator</option><optgroup label="External">'+extOpts+'</optgroup>'+
-    '<optgroup label="Internal">'+intOpts+'</optgroup></select>',
+    '<option value="">&mdash; keep current &mdash;</option><optgroup label="External">'+extOpts+'</optgroup>'+
+    '<optgroup label="Internal">'+intOpts+'</optgroup></select>'+
+    '<div class="fr" style="margin-top:12px"><div><label class="lb">Day</label><select class="inp" id="bulkDay">'+
+      optList(DAYS,'','&mdash; keep current &mdash;')+'</select></div>'+
+    '<div><label class="lb">Session</label><select class="inp" id="bulkSes">'+
+      optList(SESS,'','&mdash; keep current &mdash;')+'</select></div></div>',
     [{t:'Cancel',c:'g'},{t:'Assign',c:'',fn:function(){
       var v=document.getElementById('bulkFac').value;
-      if(!v){ toast('Pick a valuator first.','err'); return false; }
-      var p=v.split('|');
-      doSave(scope.map(function(row){ return {rowIndex:row,facultyType:p[0],facultyId:p[1]}; }));
+      var dy=document.getElementById('bulkDay').value, ss=document.getElementById('bulkSes').value;
+      if(!v&&!dy&&!ss){ toast('Choose a valuator, day or session.','err'); return false; }
+      var p=v?v.split('|'):null, out=[];
+      scope.forEach(function(row){
+        var r=findRow(row); if(!r) return; var e=eff(r);
+        var ty=p?p[0]:e.type, id=p?p[1]:e.id, d2=dy||e.day, s2=ss||e.ses;
+        if(id&&(!d2||!s2)) return;          /* valuator without day/session is skipped */
+        out.push({rowIndex:row,facultyType:ty,facultyId:id,day:d2,valSession:s2});
+      });
+      if(!out.length){ toast('Skipped: allotted bundles need a Day and Session too.','err'); return false; }
+      if(out.length<scope.length) toast((scope.length-out.length)+' bundle(s) skipped (no Day/Session).','warn');
+      doSave(out);
     }}]);
-};
-
-/* =============================== SESSION PLANNER =============================== */
-function renderPlan(){
-  var t=document.getElementById('plTable');
-  if(!DATA.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128197;</span>No bundles yet.</td></tr></tbody>'; return; }
-  var h='<thead><tr><th style="width:32px"><input type="checkbox" id="plAll"></th><th class="c">#</th>'+
-    '<th>Course</th><th class="c">Bundle</th><th class="n">Papers</th><th>Valuator</th>'+
-    '<th class="c">Day</th><th class="c">Session</th></tr></thead><tbody>';
-  DATA.forEach(function(r){
-    h+='<tr><td><input type="checkbox" class="plChk" data-row="'+r._row+'"></td><td class="c">'+esc(r['S.No.'])+'</td>'+
-      '<td><b>'+esc(r['Course Code'])+'</b> <span style="color:var(--faint)">'+esc(r['Course Name'])+'</span></td>'+
-      '<td class="c">'+esc(r['Bundle No.'])+'</td><td class="n">'+esc(r['No. of Papers'])+'</td>'+
-      '<td>'+(r['Alloted Faculty ID']?esc(r['Alloted Faculty ID'])+' &middot; '+esc(r['Faculty Name']):
-        '<span class="pill dim">open</span>')+'</td>'+
-      '<td class="c">'+(r['Valuation Day']?'<span class="pill inf">'+esc(r['Valuation Day'])+'</span>':'&mdash;')+'</td>'+
-      '<td class="c">'+(r['Valuation Session']?'<span class="pill inf">'+esc(r['Valuation Session'])+'</span>':'&mdash;')+'</td></tr>';
-  });
-  t.innerHTML=h+'</tbody>';
-  var all=document.getElementById('plAll');
-  if(all) all.onclick=function(){ document.querySelectorAll('.plChk').forEach(function(c){ c.checked=all.checked; }); };
-}
-document.getElementById('plApply').onclick=function(){
-  var scope=document.getElementById('plScope').value;
-  var rows=scope==='sel'
-    ? [].slice.call(document.querySelectorAll('.plChk:checked')).map(function(c){ return n(c.dataset.row); })
-    : DATA.filter(function(r){ return !String(r['Valuation Day']).trim(); }).map(function(r){ return r._row; });
-  if(!rows.length){ toast('Nothing to apply to.','warn'); return; }
-  var day=document.getElementById('plDay').value, ses=document.getElementById('plSes').value;
-  var b=this; busy(b,true,'Applying');
-  api({action:'setSessionDay',items:rows.map(function(r){ return {rowIndex:r,day:day,valSession:ses}; })})
-    .then(function(r){ if(!r.ok) throw new Error(r.error);
-      toast(rows.length+' bundle(s) set to '+day+' '+ses+'.','ok'); return reload().then(renderPlan); })
-    .catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
 };
 
 /* =============================== EXTERNAL EXAMINERS =============================== */
