@@ -727,21 +727,39 @@ function busy(btn,on,label){
   if(on){ btn.dataset.html=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin2"></span>'+(label||'Working&hellip;'); }
   else { btn.disabled=false; if(btn.dataset.html) btn.innerHTML=btn.dataset.html; }
 }
-function fmtDate(v){
-  if(!v) return '';
-  var s=String(v).trim();
-  var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[3]+'-'+m[2]+'-'+m[1];
-  var d=new Date(s); if(!isNaN(d.getTime())) return ('0'+d.getDate()).slice(-2)+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+d.getFullYear();
+/* One date normaliser used everywhere: returns "yyyy-mm-dd" without any UTC shifting */
+function normDate(v){
+  if(v===undefined||v===null||v==='') return '';
+  if(v instanceof Date && !isNaN(v)) v=v.getFullYear()+'-'+('0'+(v.getMonth()+1)).slice(-2)+'-'+('0'+v.getDate()).slice(-2);
+  var s=String(v).trim(), m;
+
+  /* plain yyyy-mm-dd */
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  /* ISO with time: midnight stamps keep their own date; others use the local calendar date */
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if(m){
+    if(m[4]==='00'&&m[5]==='00') return m[1]+'-'+m[2]+'-'+m[3];
+    var d1=new Date(s);
+    if(!isNaN(d1)) return d1.getFullYear()+'-'+('0'+(d1.getMonth()+1)).slice(-2)+'-'+('0'+d1.getDate()).slice(-2);
+    return m[1]+'-'+m[2]+'-'+m[3];
+  }
+
+  /* dd-mm-yyyy, dd/mm/yyyy, dd.mm.yyyy */
+  m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+  if(m) return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+
+  /* anything else (e.g. "Fri Dec 04 2026 00:00:00 GMT+0530"): use the local calendar date */
+  var d=new Date(s);
+  if(!isNaN(d.getTime()))
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   return s;
 }
-function toISO(v){
-  if(!v) return '';
-  var s=String(v).trim();
-  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  var m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
-  if(m) return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
-  var d=new Date(s); if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
-  return s;
+function toISO(v){ return normDate(v); }
+function fmtDate(v){
+  var iso=normDate(v);
+  var m=iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?(m[3]+'-'+m[2]+'-'+m[1]):iso;
 }
 function n(v){ var x=parseInt(String(v===undefined?'':v).replace(/[^0-9-]/g,''),10); return isNaN(x)?0:x; }
 
